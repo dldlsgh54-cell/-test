@@ -1,0 +1,10 @@
+{
+  "project_type": "documentary",
+  "longform_aspect_ratio": "16:9",
+  "shorts_aspect_ratio": "9:16",
+  "asset_index": "Assets/Asset_Index.json",
+  "rules": {
+    "IMAGE=AUTO": "Search Asset_Index where type=AI and usable=true.",
+    "INFOGRAPHIC=<title>": "Search Asset_Index where type=VS, usable=true, and title matches."
+  }
+}

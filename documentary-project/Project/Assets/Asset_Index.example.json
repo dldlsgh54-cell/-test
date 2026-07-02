@@ -1,0 +1,20 @@
+{
+  "assets": [
+    {
+      "id": "AI_AUTO_001",
+      "type": "AI",
+      "file": "image_001.png",
+      "title": "중국 희토류 광산",
+      "tags": ["중국", "희토류", "광산", "산업"],
+      "usable": true
+    },
+    {
+      "id": "VS_001",
+      "type": "VS",
+      "file": "infographic_001.png",
+      "title": "희토류 공급망",
+      "source": "IEA",
+      "usable": true
+    }
+  ]
+}

@@ -491,6 +491,10 @@
           <input id="docImages" class="control" type="file" accept="image/*" multiple>
         </div>
         <div class="field">
+          <label for="docAssetIndex">Asset_Index.json</label>
+          <input id="docAssetIndex" class="control" type="file" accept=".json,application/json">
+        </div>
+        <div class="field">
           <label for="docThumbnail">다큐 썸네일 이미지</label>
           <input id="docThumbnail" class="control" type="file" accept="image/*">
         </div>
@@ -607,6 +611,26 @@ COLOR=AUTO
 SFX=AUTO
 
 SUBTITLE=AUTO</textarea>
+      </div>
+
+      <div class="section">
+        <h2>다큐 자산 구조</h2>
+        <textarea id="docAssetTemplate" readonly>Project/
+├─ project.was
+├─ Assets/
+│  ├─ 모든 이미지 파일
+│  └─ Asset_Index.json
+├─ BGM/
+├─ Audio/
+└─ Output/
+
+IMAGE=AUTO
+→ Asset_Index에서 type=AI만 검색
+→ 대본과 가장 맞는 AI 이미지 자동 선택
+
+INFOGRAPHIC=희토류 공급망
+→ Asset_Index에서 type=VS + title 매칭
+→ 정확한 VS 이미지 삽입</textarea>
       </div>
 
       <div class="section">
@@ -883,6 +907,41 @@ SUBTITLE=AUTO</textarea>
       subtitle: "AUTO"
     };
 
+    const DOCUMENTARY_ASSET_RULES = {
+      projectStructure: {
+        projectFile: "Project/project.was",
+        assetsDir: "Project/Assets/",
+        assetIndex: "Project/Assets/Asset_Index.json",
+        bgmDir: "Project/BGM/",
+        audioDir: "Project/Audio/",
+        outputDir: "Project/Output/"
+      },
+      assetIndexExample: {
+        assets: [
+          {
+            id: "AI_AUTO_001",
+            type: "AI",
+            file: "image_001.png",
+            title: "중국 희토류 광산",
+            tags: ["중국", "희토류", "광산", "산업"],
+            usable: true
+          },
+          {
+            id: "VS_001",
+            type: "VS",
+            file: "infographic_001.png",
+            title: "희토류 공급망",
+            source: "IEA",
+            usable: true
+          }
+        ]
+      },
+      selectionRules: {
+        imageAuto: "IMAGE=AUTO searches only usable assets with type=AI and selects the best match for narration/script.",
+        infographicMatch: "INFOGRAPHIC=<title> searches usable assets with type=VS and matches by title."
+      }
+    };
+
     const DOCUMENTARY_TTS_PRESET = {
       LongForm: {
         voice: "ko-KR-HyunsuNeural",
@@ -1026,6 +1085,7 @@ SUBTITLE=AUTO</textarea>
 
     function analyzeDoc() {
       const images = Array.from($("#docImages").files);
+      const assetIndex = Array.from($("#docAssetIndex").files);
       const narration = Array.from($("#docNarrationMemo").files);
       const script = Array.from($("#docScriptFile").files);
       const docShortsLongformVideo = Array.from($("#docShortsLongformVideo").files);
@@ -1042,6 +1102,7 @@ SUBTITLE=AUTO</textarea>
       const ready = images.length >= 35 && images.length <= 50 && narration.length === 1 && script.length === 1 && thumbnail.length === 1 && bgm.length === 1;
       renderItems($("#docLog"), [
         makeItem("이미지", `${images.length}장 선택됨. 권장 범위는 35~50장입니다.`, images.length >= 35 && images.length <= 50 ? "ok" : "bad"),
+        makeItem("Asset_Index.json", `${assetIndex.length}개 선택됨. IMAGE=AUTO와 INFOGRAPHIC 매칭에 사용합니다.`, assetIndex.length === 1 ? "ok" : "bad"),
         makeItem("나레이션 메모장", `${narration.length}개 선택됨`, narration.length === 1 ? "ok" : "bad"),
         makeItem("나레이션 포함 대본", `${script.length}개 선택됨`, script.length === 1 ? "ok" : "bad"),
         makeItem("숏츠 원본 롱폼 영상", `${docShortsLongformVideo.length}개 선택됨 / 롱폼을 잘라 6개 숏츠로 제작`, docShortsLongformVideo.length === 1 ? "ok" : "bad"),
@@ -1274,6 +1335,7 @@ SUBTITLE=AUTO</textarea>
           ...common,
           inputs: {
             images: fileSummary($("#docImages")),
+            assetIndex: fileSummary($("#docAssetIndex")),
             thumbnail: fileSummary($("#docThumbnail")),
             narrationMemo: fileSummary($("#docNarrationMemo")),
             script: fileSummary($("#docScriptFile")),
@@ -1305,6 +1367,7 @@ SUBTITLE=AUTO</textarea>
             longformBgmVolumeDb: DOCUMENTARY_TTS_PRESET.LongForm.bgm_volume,
             shortsBgmVolumeDb: DOCUMENTARY_TTS_PRESET.Shorts.bgm_volume,
             sceneSchema: DOCUMENTARY_SCENE_SCHEMA,
+            assetRules: DOCUMENTARY_ASSET_RULES,
             narrationNaturalness: "human-like",
             sfxDecisionByGpt: true,
             qualityMinimumScore: 95
@@ -1387,6 +1450,7 @@ SUBTITLE=AUTO</textarea>
       const checks = [];
       if (plan.mode === "doc") {
         checks.push(["이미지 35~50장", plan.inputs.images.length >= 35 && plan.inputs.images.length <= 50, `${plan.inputs.images.length}장`]);
+        checks.push(["Asset_Index.json", plan.inputs.assetIndex.length === 1, `${plan.inputs.assetIndex.length}개`]);
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
         checks.push(["나레이션 메모장", plan.inputs.narrationMemo.length === 1, `${plan.inputs.narrationMemo.length}개`]);
         checks.push(["나레이션 포함 대본", plan.inputs.script.length === 1, `${plan.inputs.script.length}개`]);
@@ -1399,6 +1463,7 @@ SUBTITLE=AUTO</textarea>
         checks.push(["롱폼/숏츠 속도 분리", plan.tts.preset.LongForm.rate === "-10%" && plan.tts.preset.Shorts.rate === "+15%", `${plan.tts.preset.LongForm.rate} / ${plan.tts.preset.Shorts.rate}`]);
         checks.push(["자막 길이 분리", plan.rules.longformSubtitleMaxChars === 18 && plan.rules.shortsSubtitleMaxChars === 12, `롱폼 ${plan.rules.longformSubtitleMaxChars}자 / 숏츠 ${plan.rules.shortsSubtitleMaxChars}자`]);
         checks.push(["씬 블록 형식", plan.rules.sceneSchema.image === "AUTO" && plan.rules.sceneSchema.sfx === "AUTO", "IMAGE/BGM/CAMERA/TRANSITION/COLOR/SFX/SUBTITLE AUTO"]);
+        checks.push(["자산 선택 규칙", Boolean(plan.rules.assetRules.selectionRules.imageAuto && plan.rules.assetRules.selectionRules.infographicMatch), "IMAGE=AUTO는 AI, INFOGRAPHIC은 VS title 매칭"]);
         checks.push(["나레이션 우선 믹싱", plan.inputs.bgm.length === 1, "BGM은 나레이션보다 작게"]);
         checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       } else if (plan.mode === "vocal") {
@@ -1527,7 +1592,7 @@ SUBTITLE=AUTO</textarea>
       let activeFiles = 0;
       let textSize = 0;
       if (state.activeTab === "doc") {
-        activeFiles = Array.from($("#docImages").files).length + ($("#docThumbnail").files.length ? 1 : 0) + ($("#docBgm").files.length ? 1 : 0) + ($("#docShortsLongformVideo").files.length ? 1 : 0) + Array.from($("#docSfxFolder").files).length;
+        activeFiles = Array.from($("#docImages").files).length + ($("#docAssetIndex").files.length ? 1 : 0) + ($("#docThumbnail").files.length ? 1 : 0) + ($("#docBgm").files.length ? 1 : 0) + ($("#docShortsLongformVideo").files.length ? 1 : 0) + Array.from($("#docSfxFolder").files).length;
         textSize = ($("#docNarrationMemo").files[0]?.size || 0) + ($("#docScriptFile").files[0]?.size || 0) + ($("#docShortsScriptFile").files[0]?.size || 0) + ($("#docShortsNarrationMemo").files[0]?.size || 0);
       } else if (state.activeTab === "vocal") {
         activeFiles = Array.from($("#vocalMp3").files).length + Array.from($("#vocalImages").files).length + ($("#vocalThumbnail").files.length ? 1 : 0);
@@ -1580,6 +1645,7 @@ SUBTITLE=AUTO</textarea>
       updateRestDurations();
     });
     $("#docImages").addEventListener("change", analyzeDoc);
+    $("#docAssetIndex").addEventListener("change", analyzeDoc);
     $("#docThumbnail").addEventListener("change", analyzeDoc);
     $("#docNarrationMemo").addEventListener("change", analyzeDoc);
     $("#docScriptFile").addEventListener("change", analyzeDoc);
