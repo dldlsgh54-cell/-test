@@ -737,8 +737,12 @@
 
       <div class="section grid two">
         <div class="field">
-          <label for="shortsImages">숏츠 이미지 / 폴더</label>
-          <input id="shortsImages" class="control" type="file" accept="image/*" webkitdirectory directory multiple>
+          <label for="shortsImages">숏츠 이미지 파일</label>
+          <input id="shortsImages" class="control" type="file" accept="image/*" multiple>
+        </div>
+        <div class="field">
+          <label for="shortsImageFolder">숏츠 이미지 폴더</label>
+          <input id="shortsImageFolder" class="control" type="file" accept="image/*" webkitdirectory directory multiple>
         </div>
         <div class="field">
           <label for="shortsThumbnail">숏츠 썸네일 이미지</label>
@@ -954,7 +958,7 @@
     }
 
     function analyzeShorts() {
-      const images = Array.from($("#shortsImages").files);
+      const images = [...Array.from($("#shortsImages").files), ...Array.from($("#shortsImageFolder").files)];
       const narration = Array.from($("#shortsNarrationMemo").files);
       const script = Array.from($("#shortsScriptFile").files);
       const thumbnail = Array.from($("#shortsThumbnail").files);
@@ -1084,6 +1088,40 @@
       }));
     }
 
+    function combinedFileSummary(...inputs) {
+      return inputs.flatMap((input) => fileSummary(input));
+    }
+
+    function getYoutubeSpec(mode) {
+      if (mode === "shorts") {
+        return {
+          aspectRatio: "9:16",
+          resolution: "1080x1920",
+          fps: 30,
+          videoCodec: "h264",
+          videoBitrate: "10-12Mbps",
+          audioCodec: "aac",
+          audioBitrate: "384k",
+          sampleRate: 48000,
+          captionsSafeArea: true
+        };
+      }
+
+      const quality = mode === "vocal" ? $("#vocalQuality").value : "4k";
+      const is4k = quality === "4k";
+      return {
+        aspectRatio: "16:9",
+        resolution: is4k ? "3840x2160" : "1920x1080",
+        fps: 30,
+        videoCodec: "h264",
+        videoBitrate: is4k ? "35-45Mbps" : "8-12Mbps",
+        audioCodec: "aac",
+        audioBitrate: "384k",
+        sampleRate: 48000,
+        captionsSafeArea: true
+      };
+    }
+
     function getRateByCategory(category, isShorts = false) {
       if (isShorts) return "+5%";
       const rates = {
@@ -1107,13 +1145,28 @@
           connected: state.api.connected,
           budgetUsd: state.api.budget
         },
-        youtube: {
-          aspectRatio: mode === "shorts" ? "9:16" : "16:9",
-          resolution: mode === "shorts" ? "1080x1920" : mode === "vocal" ? $("#vocalQuality").value : "4k",
-          fps: 30,
-          videoCodec: "h264",
-          audioCodec: "aac",
-          sampleRate: 48000
+        youtube: getYoutubeSpec(mode),
+        renderEngine: {
+          requiredTools: ["ffmpeg"],
+          optionalTools: ["edge-tts", "pydub"],
+          qualityGateScore: 95,
+          audio: {
+            normalizeLoudness: true,
+            preventClipping: true,
+            narrationAboveBgm: true,
+            crossfade: true
+          },
+          visual: {
+            safeArea: true,
+            avoidTextOverlap: true,
+            thumbnailPreserved: true,
+            highQualityScaling: true
+          },
+          recovery: {
+            savePlanJson: true,
+            resumableRender: true,
+            keepErrorLog: true
+          }
         }
       };
 
@@ -1193,7 +1246,7 @@
       return {
         ...common,
         inputs: {
-          images: fileSummary($("#shortsImages")),
+          images: combinedFileSummary($("#shortsImages"), $("#shortsImageFolder")),
           thumbnail: fileSummary($("#shortsThumbnail")),
           bgm: fileSummary($("#shortsBgm")),
           narrationMemo: fileSummary($("#shortsNarrationMemo")),
@@ -1231,18 +1284,25 @@
         checks.push(["다큐 숏츠 대본", plan.inputs.docShortsScript.length === 1, `${plan.inputs.docShortsScript.length}개 / 6개 분할`]);
         checks.push(["다큐 숏츠 나레이션", plan.inputs.docShortsNarrationMemo.length === 1, `${plan.inputs.docShortsNarrationMemo.length}개 / 9:16`]);
         checks.push(["다큐 BGM", plan.inputs.bgm.length === 1, `${plan.inputs.bgm.length}개`]);
+        checks.push(["다큐 롱폼 비율", plan.youtube.aspectRatio === "16:9", plan.youtube.aspectRatio]);
+        checks.push(["다큐 숏츠 6개", plan.rules.docShortsCount === 6 && plan.rules.docShortsAspectRatio === "9:16", `${plan.rules.docShortsCount}개 / ${plan.rules.docShortsAspectRatio}`]);
+        checks.push(["나레이션 우선 믹싱", plan.inputs.bgm.length === 1, "BGM은 나레이션보다 작게"]);
         checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       } else if (plan.mode === "vocal") {
         checks.push(["MP3 40개", plan.inputs.mp3.length === 40, `${plan.inputs.mp3.length}개`]);
         checks.push(["이미지 20개", plan.inputs.images.length === 20, `${plan.inputs.images.length}개`]);
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
         checks.push(["가사 파일", plan.inputs.lyrics.length === 1, `${plan.inputs.lyrics.length}개`]);
+        checks.push(["보컬 롱폼 비율", plan.youtube.aspectRatio === "16:9", plan.youtube.aspectRatio]);
+        checks.push(["이미지-곡 1:1", plan.inputs.images.length === 20 && plan.inputs.mp3.length === 40, "20곡 선택 후 20이미지 매칭"]);
       } else if (plan.mode === "rest") {
         checks.push(["채택곡 35~40개", state.rest.acceptedCount >= 35 && state.rest.acceptedCount <= 40, `${state.rest.acceptedCount}개 채택`]);
         checks.push(["영상 씬 1개", plan.inputs.videoScene.length === 1, `${plan.inputs.videoScene.length}개`]);
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
         checks.push(["세트 총 길이 계산", plan.rules.setDurationSeconds > 0, formatLongDuration(plan.rules.setDurationSeconds)]);
         checks.push(["최종 길이 계산", plan.rules.finalDurationSeconds > 0, formatLongDuration(plan.rules.finalDurationSeconds)]);
+        checks.push(["휴식 롱폼 비율", plan.youtube.aspectRatio === "16:9", plan.youtube.aspectRatio]);
+        checks.push(["자연 효과음 설계", plan.rules.sfxMode !== "off", plan.rules.sfxMode]);
       } else {
         checks.push(["숏츠 이미지", plan.inputs.images.length > 0, `${plan.inputs.images.length}장`]);
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
@@ -1251,9 +1311,13 @@
         checks.push(["숏츠 대본", plan.inputs.script.length === 1, `${plan.inputs.script.length}개`]);
         checks.push(["숏츠 비율", plan.rules.aspectRatio === "9:16", plan.rules.aspectRatio]);
         checks.push(["35초 구성", plan.rules.durationSeconds === 35, `${plan.rules.durationSeconds}초`]);
+        checks.push(["8씬 스토리보드", plan.rules.scenes === 8, `${plan.rules.scenes}씬`]);
+        checks.push(["모바일 해상도", plan.youtube.resolution === "1080x1920", plan.youtube.resolution]);
         checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       }
-      checks.push(["YouTube 규격", true, `${plan.youtube.resolution} / ${plan.youtube.fps}fps / ${plan.youtube.audioCodec.toUpperCase()} 48kHz`]);
+      checks.push(["YouTube 규격", Boolean(plan.youtube.aspectRatio && plan.youtube.resolution && plan.youtube.fps === 30), `${plan.youtube.aspectRatio} / ${plan.youtube.resolution} / ${plan.youtube.fps}fps`]);
+      checks.push(["오디오 규격", plan.youtube.audioCodec === "aac" && plan.youtube.sampleRate === 48000, `${plan.youtube.audioCodec.toUpperCase()} / ${plan.youtube.sampleRate}Hz / ${plan.youtube.audioBitrate}`]);
+      checks.push(["자막 안전영역", plan.youtube.captionsSafeArea === true, "모바일/TV 크롭 대응"]);
       checks.push(["GPT 예산 제한", state.costs.session <= state.api.budget, `$${state.costs.session.toFixed(4)} / $${state.api.budget.toFixed(3)}`]);
       return checks;
     }
@@ -1268,7 +1332,8 @@
       $("#renderProgress").textContent = score >= 95 ? "준비됨" : "보완 필요";
     }
 
-    function makeRenderPlan() {
+    async function makeRenderPlan() {
+      await analyzeActive();
       estimateCost();
       const plan = buildRenderPlan();
       const checks = runQualityChecks(plan);
@@ -1357,7 +1422,7 @@
       } else if (state.activeTab === "rest") {
         activeFiles = Array.from($("#restMp3").files).length + Array.from($("#restSfxFolder").files).length + ($("#restScene").files.length ? 1 : 0) + ($("#restThumbnail").files.length ? 1 : 0);
       } else {
-        activeFiles = Array.from($("#shortsImages").files).length + ($("#shortsThumbnail").files.length ? 1 : 0) + ($("#shortsBgm").files.length ? 1 : 0) + Array.from($("#shortsSfxFolder").files).length;
+        activeFiles = Array.from($("#shortsImages").files).length + Array.from($("#shortsImageFolder").files).length + ($("#shortsThumbnail").files.length ? 1 : 0) + ($("#shortsBgm").files.length ? 1 : 0) + Array.from($("#shortsSfxFolder").files).length;
         textSize = ($("#shortsNarrationMemo").files[0]?.size || 0) + ($("#shortsScriptFile").files[0]?.size || 0);
       }
       const estimatedInput = Math.round(900 + activeFiles * 140 + textSize / 2.8);
@@ -1368,7 +1433,7 @@
       state.costs.input = estimatedInput;
       state.costs.output = estimatedOutput;
       state.costs.session = session;
-      state.costs.total += session;
+      state.costs.total = session;
       $("#inputTokens").textContent = estimatedInput.toLocaleString("en-US");
       $("#outputTokens").textContent = estimatedOutput.toLocaleString("en-US");
       $("#sessionCost").textContent = `$${session.toFixed(4)}`;
@@ -1380,16 +1445,23 @@
     $("#estimateBtn").addEventListener("click", estimateCost);
     $("#apiSaveBtn").addEventListener("click", applyApiSettings);
     $("#apiCheckBtn").addEventListener("click", checkApiConnection);
+    $("#apiBudget").addEventListener("change", applyApiSettings);
     $("#makePlanBtn").addEventListener("click", makeRenderPlan);
     $("#downloadPlanBtn").addEventListener("click", downloadRenderPlan);
     $("#vocalLyrics").addEventListener("change", () => loadLyrics($("#vocalLyrics"), $("#vocalLyricCount"), $("#vocalLyricLog")));
     $("#vocalMp3").addEventListener("change", analyzeVocal);
     $("#vocalImages").addEventListener("change", analyzeVocal);
+    $("#vocalThumbnail").addEventListener("change", analyzeVocal);
+    $("#vocalQuality").addEventListener("change", estimateCost);
     $("#restMp3").addEventListener("change", analyzeRest);
-    $("#restSfxFolder").addEventListener("change", estimateCost);
+    $("#restSfxFolder").addEventListener("change", () => {
+      analyzeRest();
+      estimateCost();
+    });
     $("#restAutoSfx").addEventListener("change", analyzeRest);
     $("#restVisualSync").addEventListener("change", analyzeRest);
     $("#restScene").addEventListener("change", analyzeRest);
+    $("#restThumbnail").addEventListener("change", analyzeRest);
     $("#restRepeat").addEventListener("change", () => {
       state.rest.repeat = Number($("#restRepeat").value);
       updateRestDurations();
@@ -1401,14 +1473,21 @@
     $("#docShortsScriptFile").addEventListener("change", analyzeDoc);
     $("#docShortsNarrationMemo").addEventListener("change", analyzeDoc);
     $("#docBgm").addEventListener("change", analyzeDoc);
-    $("#docSfxFolder").addEventListener("change", estimateCost);
+    $("#docSfxFolder").addEventListener("change", () => {
+      analyzeDoc();
+      estimateCost();
+    });
     $("#docCategory").addEventListener("change", analyzeDoc);
     $("#shortsImages").addEventListener("change", analyzeShorts);
+    $("#shortsImageFolder").addEventListener("change", analyzeShorts);
     $("#shortsThumbnail").addEventListener("change", analyzeShorts);
     $("#shortsBgm").addEventListener("change", analyzeShorts);
     $("#shortsNarrationMemo").addEventListener("change", analyzeShorts);
     $("#shortsScriptFile").addEventListener("change", analyzeShorts);
-    $("#shortsSfxFolder").addEventListener("change", estimateCost);
+    $("#shortsSfxFolder").addEventListener("change", () => {
+      analyzeShorts();
+      estimateCost();
+    });
     $("#shortsCount").addEventListener("change", analyzeShorts);
     $("#vocalPrepareBtn").addEventListener("click", () => markPrepared("vocal"));
     $("#restPrepareBtn").addEventListener("click", () => markPrepared("rest"));
