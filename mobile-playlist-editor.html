@@ -582,6 +582,34 @@
       </div>
 
       <div class="section">
+        <h2>다큐 씬 블록 형식</h2>
+        <textarea id="docSceneTemplate" readonly>[SCENE 001]
+
+NARRATION=
+......
+
+IMAGE=AUTO
+
+INFOGRAPHIC=
+
+EMOTION=Epic
+
+IMPORTANCE=5
+
+BGM=AUTO
+
+CAMERA=AUTO
+
+TRANSITION=AUTO
+
+COLOR=AUTO
+
+SFX=AUTO
+
+SUBTITLE=AUTO</textarea>
+      </div>
+
+      <div class="section">
         <h2>다큐창 검사 결과</h2>
         <div id="docLog" class="log"></div>
       </div>
@@ -838,6 +866,21 @@
       rest: { acceptedDuration: 0, acceptedCount: 0, repeat: 2 },
       api: { key: "", model: "gpt-5.4-mini", proxy: "/api/openai-check", connected: false, budget: 0.05 },
       renderPlan: null
+    };
+
+    const DOCUMENTARY_SCENE_SCHEMA = {
+      scene_id: "[SCENE 001]",
+      narration: "required text",
+      image: "AUTO",
+      infographic: "optional text or AUTO",
+      emotion: "Epic",
+      importance: 5,
+      bgm: "AUTO",
+      camera: "AUTO",
+      transition: "AUTO",
+      color: "AUTO",
+      sfx: "AUTO",
+      subtitle: "AUTO"
     };
 
     const DOCUMENTARY_TTS_PRESET = {
@@ -1261,6 +1304,7 @@
             shortsSubtitleMaxChars: DOCUMENTARY_TTS_PRESET.Shorts.subtitle_max_chars,
             longformBgmVolumeDb: DOCUMENTARY_TTS_PRESET.LongForm.bgm_volume,
             shortsBgmVolumeDb: DOCUMENTARY_TTS_PRESET.Shorts.bgm_volume,
+            sceneSchema: DOCUMENTARY_SCENE_SCHEMA,
             narrationNaturalness: "human-like",
             sfxDecisionByGpt: true,
             qualityMinimumScore: 95
@@ -1354,6 +1398,7 @@
         checks.push(["다큐 숏츠 6개", plan.rules.docShortsCount === 6 && plan.rules.docShortsAspectRatio === "9:16", `${plan.rules.docShortsCount}개 / ${plan.rules.docShortsAspectRatio}`]);
         checks.push(["롱폼/숏츠 속도 분리", plan.tts.preset.LongForm.rate === "-10%" && plan.tts.preset.Shorts.rate === "+15%", `${plan.tts.preset.LongForm.rate} / ${plan.tts.preset.Shorts.rate}`]);
         checks.push(["자막 길이 분리", plan.rules.longformSubtitleMaxChars === 18 && plan.rules.shortsSubtitleMaxChars === 12, `롱폼 ${plan.rules.longformSubtitleMaxChars}자 / 숏츠 ${plan.rules.shortsSubtitleMaxChars}자`]);
+        checks.push(["씬 블록 형식", plan.rules.sceneSchema.image === "AUTO" && plan.rules.sceneSchema.sfx === "AUTO", "IMAGE/BGM/CAMERA/TRANSITION/COLOR/SFX/SUBTITLE AUTO"]);
         checks.push(["나레이션 우선 믹싱", plan.inputs.bgm.length === 1, "BGM은 나레이션보다 작게"]);
         checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       } else if (plan.mode === "vocal") {
