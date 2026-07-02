@@ -82,7 +82,7 @@
 
     .tabs {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
       background: var(--panel);
       border: 1px solid var(--line);
@@ -417,8 +417,10 @@
       </div>
 
       <nav class="tabs" aria-label="작업 창 전환">
-        <button class="tab" data-tab="vocal" aria-selected="true">보컬창</button>
+        <button class="tab" data-tab="doc" aria-selected="true">다큐창</button>
+        <button class="tab" data-tab="vocal" aria-selected="false">보컬창</button>
         <button class="tab" data-tab="rest" aria-selected="false">휴식창</button>
+        <button class="tab" data-tab="shorts" aria-selected="false">숏츠창</button>
       </nav>
     </div>
 
@@ -471,7 +473,80 @@
       <div id="qualityLog" class="log" style="margin-top: 10px;"></div>
     </section>
 
-    <section id="vocalView" class="view active" aria-labelledby="vocalTitle">
+    <section id="docView" class="view active" aria-labelledby="docTitle">
+      <div class="section">
+        <h2 id="docTitle">다큐 영상 자동 제작</h2>
+        <div class="status-grid">
+          <div class="stat"><span>이미지</span><strong id="docImageCount">0 / 35~50</strong></div>
+          <div class="stat"><span>나레이션</span><strong id="docNarrationCount">0 / 1</strong></div>
+          <div class="stat"><span>대본</span><strong id="docScriptCount">0 / 1</strong></div>
+          <div class="stat"><span>TTS</span><strong>Hyunsu</strong></div>
+        </div>
+      </div>
+
+      <div class="section grid two">
+        <div class="field">
+          <label for="docImages">다큐 이미지 35~50장</label>
+          <input id="docImages" class="control" type="file" accept="image/*" multiple>
+        </div>
+        <div class="field">
+          <label for="docThumbnail">다큐 썸네일 이미지</label>
+          <input id="docThumbnail" class="control" type="file" accept="image/*">
+        </div>
+        <div class="field">
+          <label for="docNarrationMemo">나레이션 메모장</label>
+          <input id="docNarrationMemo" class="control" type="file" accept=".txt,text/plain">
+        </div>
+        <div class="field">
+          <label for="docScriptFile">나레이션 포함 대본</label>
+          <input id="docScriptFile" class="control" type="file" accept=".txt,.md,text/plain">
+        </div>
+        <div class="field">
+          <label for="docSfxFolder">효과음 폴더</label>
+          <input id="docSfxFolder" class="control" type="file" accept="audio/*" webkitdirectory directory multiple>
+        </div>
+        <div class="field">
+          <label for="docCategory">장면 기본 카테고리</label>
+          <select id="docCategory">
+            <option value="Documentary">Documentary</option>
+            <option value="Economy">Economy</option>
+            <option value="AI / Technology">AI / Technology</option>
+            <option value="Military">Military</option>
+            <option value="Tension / Crisis">Tension / Crisis</option>
+            <option value="Ending">Ending</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Edge-TTS 나레이션</h2>
+        <div class="grid two">
+          <div class="field">
+            <label>기본 목소리</label>
+            <div class="control">ko-KR-HyunsuNeural</div>
+          </div>
+          <div class="field">
+            <label>롱폼 속도</label>
+            <div class="control">-10%</div>
+          </div>
+          <div class="field">
+            <label>피치 / 볼륨</label>
+            <div class="control">0Hz / +0%</div>
+          </div>
+          <div class="field">
+            <label>저장 위치</label>
+            <div class="control">Projects/ProjectName/Audio/long_narration.mp3</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>다큐창 검사 결과</h2>
+        <div id="docLog" class="log"></div>
+      </div>
+    </section>
+
+    <section id="vocalView" class="view" aria-labelledby="vocalTitle">
       <div class="section">
         <h2 id="vocalTitle">보컬 영상 자동 제작</h2>
         <div class="status-grid">
@@ -622,6 +697,77 @@
         </div>
       </div>
     </section>
+
+    <section id="shortsView" class="view" aria-labelledby="shortsTitle">
+      <div class="section">
+        <h2 id="shortsTitle">숏츠 자동 제작</h2>
+        <div class="status-grid">
+          <div class="stat"><span>이미지</span><strong id="shortsImageCount">0 / 선택</strong></div>
+          <div class="stat"><span>나레이션</span><strong id="shortsNarrationCount">0 / 1</strong></div>
+          <div class="stat"><span>대본</span><strong id="shortsScriptCount">0 / 1</strong></div>
+          <div class="stat"><span>TTS</span><strong>+5%</strong></div>
+        </div>
+      </div>
+
+      <div class="section grid two">
+        <div class="field">
+          <label for="shortsImages">숏츠 이미지</label>
+          <input id="shortsImages" class="control" type="file" accept="image/*" multiple>
+        </div>
+        <div class="field">
+          <label for="shortsThumbnail">숏츠 썸네일 이미지</label>
+          <input id="shortsThumbnail" class="control" type="file" accept="image/*">
+        </div>
+        <div class="field">
+          <label for="shortsNarrationMemo">숏츠 나레이션 메모장</label>
+          <input id="shortsNarrationMemo" class="control" type="file" accept=".txt,text/plain">
+        </div>
+        <div class="field">
+          <label for="shortsScriptFile">나레이션 포함 숏츠 대본</label>
+          <input id="shortsScriptFile" class="control" type="file" accept=".txt,.md,text/plain">
+        </div>
+        <div class="field">
+          <label for="shortsSfxFolder">효과음 폴더</label>
+          <input id="shortsSfxFolder" class="control" type="file" accept="audio/*" webkitdirectory directory multiple>
+        </div>
+        <div class="field">
+          <label for="shortsCount">숏츠 개수</label>
+          <select id="shortsCount">
+            <option value="1">1개</option>
+            <option value="3">3개</option>
+            <option value="5">5개</option>
+            <option value="9">9개</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Edge-TTS 숏츠 나레이션</h2>
+        <div class="grid two">
+          <div class="field">
+            <label>기본 목소리</label>
+            <div class="control">ko-KR-HyunsuNeural</div>
+          </div>
+          <div class="field">
+            <label>숏츠 속도</label>
+            <div class="control">+5%</div>
+          </div>
+          <div class="field">
+            <label>피치 / 볼륨</label>
+            <div class="control">0Hz / +0%</div>
+          </div>
+          <div class="field">
+            <label>저장 위치</label>
+            <div class="control">Projects/ProjectName/Audio/shorts_01.mp3</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>숏츠창 검사 결과</h2>
+        <div id="shortsLog" class="log"></div>
+      </div>
+    </section>
   </main>
 
   <div class="bottom-actions">
@@ -633,7 +779,7 @@
 
   <script>
     const state = {
-      activeTab: "vocal",
+      activeTab: "doc",
       costs: { input: 0, output: 0, session: 0, total: 0 },
       modelRate: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
       rest: { acceptedDuration: 0, acceptedCount: 0, repeat: 2 },
@@ -649,8 +795,10 @@
       $$(".tab").forEach((button) => {
         button.setAttribute("aria-selected", String(button.dataset.tab === tab));
       });
+      $("#docView").classList.toggle("active", tab === "doc");
       $("#vocalView").classList.toggle("active", tab === "vocal");
       $("#restView").classList.toggle("active", tab === "rest");
+      $("#shortsView").classList.toggle("active", tab === "shorts");
     }
 
     function formatDuration(seconds) {
@@ -744,6 +892,51 @@
         : `<strong class="bad">실행 준비 부족</strong><small>필요 조건: MP3 40개, 이미지 20개, 가사 Track01~20. 현재 MP3 ${mp3s.length}개, 이미지 ${images.length}개, 가사 ${lyrics.length}개입니다.</small>`;
       $("#vocalPrepareBtn").disabled = !ready;
       $("#vocalRenderBtn").disabled = true;
+    }
+
+    function analyzeDoc() {
+      const images = Array.from($("#docImages").files);
+      const narration = Array.from($("#docNarrationMemo").files);
+      const script = Array.from($("#docScriptFile").files);
+      const thumbnail = Array.from($("#docThumbnail").files);
+      $("#docImageCount").textContent = `${images.length} / 35~50`;
+      $("#docNarrationCount").textContent = `${narration.length} / 1`;
+      $("#docScriptCount").textContent = `${script.length} / 1`;
+      const ready = images.length >= 35 && images.length <= 50 && narration.length === 1 && script.length === 1 && thumbnail.length === 1;
+      renderItems($("#docLog"), [
+        makeItem("이미지", `${images.length}장 선택됨. 권장 범위는 35~50장입니다.`, images.length >= 35 && images.length <= 50 ? "ok" : "bad"),
+        makeItem("나레이션 메모장", `${narration.length}개 선택됨`, narration.length === 1 ? "ok" : "bad"),
+        makeItem("나레이션 포함 대본", `${script.length}개 선택됨`, script.length === 1 ? "ok" : "bad"),
+        makeItem("TTS 설정", `edge-tts / ko-KR-HyunsuNeural / ${getRateByCategory($("#docCategory").value, false)}`, "ok"),
+        makeItem("효과음", $("#docSfxFolder").files.length ? `${$("#docSfxFolder").files.length}개 효과음을 GPT가 작게 배치합니다.` : "효과음 폴더가 없으면 기본 자연 효과음 설계를 사용합니다.", "soft")
+      ], "다큐 파일을 넣고 분석하면 상태가 표시됩니다.");
+      return ready;
+    }
+
+    function analyzeShorts() {
+      const images = Array.from($("#shortsImages").files);
+      const narration = Array.from($("#shortsNarrationMemo").files);
+      const script = Array.from($("#shortsScriptFile").files);
+      const thumbnail = Array.from($("#shortsThumbnail").files);
+      $("#shortsImageCount").textContent = `${images.length} / 선택`;
+      $("#shortsNarrationCount").textContent = `${narration.length} / 1`;
+      $("#shortsScriptCount").textContent = `${script.length} / 1`;
+      const ready = images.length > 0 && narration.length === 1 && script.length === 1 && thumbnail.length === 1;
+      renderItems($("#shortsLog"), [
+        makeItem("이미지", `${images.length}장 선택됨`, images.length > 0 ? "ok" : "bad"),
+        makeItem("숏츠 나레이션 메모장", `${narration.length}개 선택됨`, narration.length === 1 ? "ok" : "bad"),
+        makeItem("나레이션 포함 대본", `${script.length}개 선택됨`, script.length === 1 ? "ok" : "bad"),
+        makeItem("TTS 설정", "edge-tts / ko-KR-HyunsuNeural / +5%", "ok"),
+        makeItem("효과음", $("#shortsSfxFolder").files.length ? `${$("#shortsSfxFolder").files.length}개 효과음을 GPT가 작게 배치합니다.` : "효과음 폴더가 없으면 기본 자연 효과음 설계를 사용합니다.", "soft")
+      ], "숏츠 파일을 넣고 분석하면 상태가 표시됩니다.");
+      return ready;
+    }
+
+    function analyzeActive() {
+      if (state.activeTab === "doc") return analyzeDoc();
+      if (state.activeTab === "vocal") return analyzeVocal();
+      if (state.activeTab === "rest") return analyzeRest();
+      return analyzeShorts();
     }
 
     function getTrackKey(name) {
@@ -849,6 +1042,19 @@
       }));
     }
 
+    function getRateByCategory(category, isShorts = false) {
+      if (isShorts) return "+5%";
+      const rates = {
+        "Economy": "-10%",
+        "AI / Technology": "-5%",
+        "Military": "-15%",
+        "Tension / Crisis": "-15%",
+        "Ending": "-10%",
+        "Documentary": "-10%"
+      };
+      return rates[category] || "-10%";
+    }
+
     function buildRenderPlan() {
       const mode = state.activeTab;
       const common = {
@@ -869,6 +1075,33 @@
         }
       };
 
+      if (mode === "doc") {
+        return {
+          ...common,
+          inputs: {
+            images: fileSummary($("#docImages")),
+            thumbnail: fileSummary($("#docThumbnail")),
+            narrationMemo: fileSummary($("#docNarrationMemo")),
+            script: fileSummary($("#docScriptFile")),
+            sfxFolder: fileSummary($("#docSfxFolder"))
+          },
+          tts: {
+            engine: "edge-tts",
+            voice: "ko-KR-HyunsuNeural",
+            rate: getRateByCategory($("#docCategory").value, false),
+            pitch: "0Hz",
+            volume: "+0%",
+            outputPath: "Projects/ProjectName/Audio/long_narration.mp3"
+          },
+          rules: {
+            imageCount: "35-50",
+            narrationNaturalness: "human-like",
+            sfxDecisionByGpt: true,
+            qualityMinimumScore: 95
+          }
+        };
+      }
+
       if (mode === "vocal") {
         return {
           ...common,
@@ -887,40 +1120,79 @@
         };
       }
 
+      if (mode === "rest") {
+        return {
+          ...common,
+          inputs: {
+            mp3: fileSummary($("#restMp3")),
+            videoScene: fileSummary($("#restScene")),
+            thumbnail: fileSummary($("#restThumbnail")),
+            sfxFolder: fileSummary($("#restSfxFolder"))
+          },
+          rules: {
+            acceptedTrackCount: "35-40",
+            durationRangeSeconds: [140, 300],
+            duplicateTrackGap: 7,
+            repeat: state.rest.repeat,
+            setDurationSeconds: Math.round(state.rest.acceptedDuration),
+            finalDurationSeconds: Math.round(state.rest.acceptedDuration * state.rest.repeat),
+            sfxMode: $("#restAutoSfx").value,
+            visualSync: $("#restVisualSync").value
+          }
+        };
+      }
+
       return {
         ...common,
         inputs: {
-          mp3: fileSummary($("#restMp3")),
-          videoScene: fileSummary($("#restScene")),
-          thumbnail: fileSummary($("#restThumbnail")),
-          sfxFolder: fileSummary($("#restSfxFolder"))
+          images: fileSummary($("#shortsImages")),
+          thumbnail: fileSummary($("#shortsThumbnail")),
+          narrationMemo: fileSummary($("#shortsNarrationMemo")),
+          script: fileSummary($("#shortsScriptFile")),
+          sfxFolder: fileSummary($("#shortsSfxFolder"))
+        },
+        tts: {
+          engine: "edge-tts",
+          voice: "ko-KR-HyunsuNeural",
+          rate: "+5%",
+          pitch: "0Hz",
+          volume: "+0%",
+          outputPattern: "Projects/ProjectName/Audio/shorts_##.mp3"
         },
         rules: {
-          acceptedTrackCount: "35-40",
-          durationRangeSeconds: [140, 300],
-          duplicateTrackGap: 7,
-          repeat: state.rest.repeat,
-          setDurationSeconds: Math.round(state.rest.acceptedDuration),
-          finalDurationSeconds: Math.round(state.rest.acceptedDuration * state.rest.repeat),
-          sfxMode: $("#restAutoSfx").value,
-          visualSync: $("#restVisualSync").value
+          shortsCount: Number($("#shortsCount").value),
+          narrationNaturalness: "same voice, faster delivery",
+          sfxDecisionByGpt: true,
+          qualityMinimumScore: 95
         }
       };
     }
 
     function runQualityChecks(plan) {
       const checks = [];
-      if (plan.mode === "vocal") {
+      if (plan.mode === "doc") {
+        checks.push(["이미지 35~50장", plan.inputs.images.length >= 35 && plan.inputs.images.length <= 50, `${plan.inputs.images.length}장`]);
+        checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
+        checks.push(["나레이션 메모장", plan.inputs.narrationMemo.length === 1, `${plan.inputs.narrationMemo.length}개`]);
+        checks.push(["나레이션 포함 대본", plan.inputs.script.length === 1, `${plan.inputs.script.length}개`]);
+        checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
+      } else if (plan.mode === "vocal") {
         checks.push(["MP3 40개", plan.inputs.mp3.length === 40, `${plan.inputs.mp3.length}개`]);
         checks.push(["이미지 20개", plan.inputs.images.length === 20, `${plan.inputs.images.length}개`]);
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
         checks.push(["가사 파일", plan.inputs.lyrics.length === 1, `${plan.inputs.lyrics.length}개`]);
-      } else {
+      } else if (plan.mode === "rest") {
         checks.push(["채택곡 35~40개", state.rest.acceptedCount >= 35 && state.rest.acceptedCount <= 40, `${state.rest.acceptedCount}개 채택`]);
         checks.push(["영상 씬 1개", plan.inputs.videoScene.length === 1, `${plan.inputs.videoScene.length}개`]);
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
         checks.push(["세트 총 길이 계산", plan.rules.setDurationSeconds > 0, formatLongDuration(plan.rules.setDurationSeconds)]);
         checks.push(["최종 길이 계산", plan.rules.finalDurationSeconds > 0, formatLongDuration(plan.rules.finalDurationSeconds)]);
+      } else {
+        checks.push(["숏츠 이미지", plan.inputs.images.length > 0, `${plan.inputs.images.length}장`]);
+        checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
+        checks.push(["숏츠 나레이션 메모장", plan.inputs.narrationMemo.length === 1, `${plan.inputs.narrationMemo.length}개`]);
+        checks.push(["숏츠 대본", plan.inputs.script.length === 1, `${plan.inputs.script.length}개`]);
+        checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       }
       checks.push(["YouTube 규격", true, `${plan.youtube.resolution} / ${plan.youtube.fps}fps / ${plan.youtube.audioCodec.toUpperCase()} 48kHz`]);
       checks.push(["GPT 예산 제한", state.costs.session <= state.api.budget, `$${state.costs.session.toFixed(4)} / $${state.api.budget.toFixed(3)}`]);
@@ -1015,13 +1287,22 @@
     }
 
     function estimateCost() {
-      const activeFiles = state.activeTab === "vocal"
-        ? Array.from($("#vocalMp3").files).length + Array.from($("#vocalImages").files).length + ($("#vocalThumbnail").files.length ? 1 : 0)
-        : Array.from($("#restMp3").files).length + Array.from($("#restSfxFolder").files).length + ($("#restScene").files.length ? 1 : 0) + ($("#restThumbnail").files.length ? 1 : 0);
-      const lyricSize = $("#vocalLyrics").files[0]?.size || 0;
-      const textSize = state.activeTab === "rest" ? 0 : lyricSize / 2;
+      let activeFiles = 0;
+      let textSize = 0;
+      if (state.activeTab === "doc") {
+        activeFiles = Array.from($("#docImages").files).length + ($("#docThumbnail").files.length ? 1 : 0) + Array.from($("#docSfxFolder").files).length;
+        textSize = ($("#docNarrationMemo").files[0]?.size || 0) + ($("#docScriptFile").files[0]?.size || 0);
+      } else if (state.activeTab === "vocal") {
+        activeFiles = Array.from($("#vocalMp3").files).length + Array.from($("#vocalImages").files).length + ($("#vocalThumbnail").files.length ? 1 : 0);
+        textSize = ($("#vocalLyrics").files[0]?.size || 0) / 2;
+      } else if (state.activeTab === "rest") {
+        activeFiles = Array.from($("#restMp3").files).length + Array.from($("#restSfxFolder").files).length + ($("#restScene").files.length ? 1 : 0) + ($("#restThumbnail").files.length ? 1 : 0);
+      } else {
+        activeFiles = Array.from($("#shortsImages").files).length + ($("#shortsThumbnail").files.length ? 1 : 0) + Array.from($("#shortsSfxFolder").files).length;
+        textSize = ($("#shortsNarrationMemo").files[0]?.size || 0) + ($("#shortsScriptFile").files[0]?.size || 0);
+      }
       const estimatedInput = Math.round(900 + activeFiles * 140 + textSize / 2.8);
-      const estimatedOutput = state.activeTab === "vocal" ? 1500 : 1900;
+      const estimatedOutput = state.activeTab === "shorts" ? 1200 : state.activeTab === "vocal" ? 1500 : 1900;
       const session = (estimatedInput / 1_000_000) * state.modelRate.inputPerMillion +
         (estimatedOutput / 1_000_000) * state.modelRate.outputPerMillion;
 
@@ -1036,7 +1317,7 @@
     }
 
     $$(".tab").forEach((button) => button.addEventListener("click", () => setTab(button.dataset.tab)));
-    $("#analyzeBtn").addEventListener("click", () => state.activeTab === "vocal" ? analyzeVocal() : analyzeRest());
+    $("#analyzeBtn").addEventListener("click", analyzeActive);
     $("#estimateBtn").addEventListener("click", estimateCost);
     $("#apiSaveBtn").addEventListener("click", applyApiSettings);
     $("#apiCheckBtn").addEventListener("click", checkApiConnection);
@@ -1054,6 +1335,18 @@
       state.rest.repeat = Number($("#restRepeat").value);
       updateRestDurations();
     });
+    $("#docImages").addEventListener("change", analyzeDoc);
+    $("#docThumbnail").addEventListener("change", analyzeDoc);
+    $("#docNarrationMemo").addEventListener("change", analyzeDoc);
+    $("#docScriptFile").addEventListener("change", analyzeDoc);
+    $("#docSfxFolder").addEventListener("change", estimateCost);
+    $("#docCategory").addEventListener("change", analyzeDoc);
+    $("#shortsImages").addEventListener("change", analyzeShorts);
+    $("#shortsThumbnail").addEventListener("change", analyzeShorts);
+    $("#shortsNarrationMemo").addEventListener("change", analyzeShorts);
+    $("#shortsScriptFile").addEventListener("change", analyzeShorts);
+    $("#shortsSfxFolder").addEventListener("change", estimateCost);
+    $("#shortsCount").addEventListener("change", analyzeShorts);
     $("#vocalPrepareBtn").addEventListener("click", () => markPrepared("vocal"));
     $("#restPrepareBtn").addEventListener("click", () => markPrepared("rest"));
     $("#vocalRenderBtn").addEventListener("click", () => showRenderPlaceholder("vocal"));
@@ -1064,6 +1357,8 @@
 
     renderItems($("#vocalLyricLog"), [], "가사 메모장을 불러오면 Track01~20 상태가 표시됩니다.");
     renderItems($("#restLog"), [], "40곡 MP3를 넣고 분석하면 휴식창 규칙 검사가 표시됩니다.");
+    renderItems($("#docLog"), [], "다큐 이미지, 나레이션 메모장, 대본을 넣고 분석하면 상태가 표시됩니다.");
+    renderItems($("#shortsLog"), [], "숏츠 이미지, 나레이션 메모장, 대본을 넣고 분석하면 상태가 표시됩니다.");
   </script>
 </body>
 </html>
