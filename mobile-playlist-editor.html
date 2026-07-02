@@ -520,7 +520,7 @@
         <h2 id="restTitle">휴식 영상 자동 제작</h2>
         <div class="status-grid">
           <div class="stat"><span>채택 조건</span><strong>35~40곡</strong></div>
-          <div class="stat"><span>곡 길이</span><strong>2:40~5:00</strong></div>
+          <div class="stat"><span>곡 길이</span><strong>2:20~5:00</strong></div>
           <div class="stat"><span>씬 단위</span><strong>8초</strong></div>
           <div class="stat"><span>세트 총 길이</span><strong id="restSetDurationTop">--:--:--</strong></div>
         </div>
@@ -723,7 +723,7 @@
       const rejected = [];
 
       durations.forEach((entry) => {
-        const lengthOk = entry.duration >= 160 && entry.duration <= 300;
+        const lengthOk = entry.duration >= 140 && entry.duration <= 300;
         if (entry.ok && lengthOk) accepted.push(entry);
         else rejected.push(entry);
       });
@@ -753,14 +753,14 @@
       ];
 
       rejected.slice(0, 20).forEach((entry) => {
-        result.push(makeItem(entry.file.name, `길이 ${formatDuration(entry.duration)} / 조건 2:40~5:00`, "bad"));
+        result.push(makeItem(entry.file.name, `길이 ${formatDuration(entry.duration)} / 조건 2:20~5:00`, "bad"));
       });
 
       renderItems($("#restLog"), result, "40곡 MP3를 넣고 분석하면 휴식창 규칙 검사가 표시됩니다.");
       const ready = accepted.length >= 35 && accepted.length <= 40 && $("#restScene").files.length === 1;
       $("#restRunStatus").innerHTML = ready
         ? `<strong class="ok">실행 준비 가능</strong><small>채택 가능 곡 ${accepted.length}개와 8초 영상 씬이 확인되었습니다. 다음 단계에서 자연 배치와 효과음 매칭 설계안을 만들 수 있습니다.</small>`
-        : `<strong class="bad">실행 준비 부족</strong><small>필요 조건: 2:40~5:00 채택곡 35~40개, 8초 영상 씬 1개. 현재 채택 가능 곡 ${accepted.length}개, 영상 씬 ${$("#restScene").files.length}개입니다.</small>`;
+        : `<strong class="bad">실행 준비 부족</strong><small>필요 조건: 2:20~5:00 채택곡 35~40개, 8초 영상 씬 1개. 현재 채택 가능 곡 ${accepted.length}개, 영상 씬 ${$("#restScene").files.length}개입니다.</small>`;
       $("#restPrepareBtn").disabled = !ready;
       $("#restRenderBtn").disabled = true;
     }
