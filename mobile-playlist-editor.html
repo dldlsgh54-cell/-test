@@ -540,6 +540,22 @@
           <input id="restSfxFolder" class="control" type="file" accept="audio/*" webkitdirectory directory multiple>
         </div>
         <div class="field">
+          <label for="restAutoSfx">효과음 방식</label>
+          <select id="restAutoSfx">
+            <option value="auto">폴더 없으면 자동 자연 효과음</option>
+            <option value="folder">선택한 효과음 폴더만 사용</option>
+            <option value="off">효과음 사용 안 함</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="restVisualSync">영상 효과 연동</label>
+          <select id="restVisualSync">
+            <option value="soft">효과음에 맞춰 부드럽게 연동</option>
+            <option value="strong">효과음에 맞춰 선명하게 연동</option>
+            <option value="off">영상 효과 연동 끔</option>
+          </select>
+        </div>
+        <div class="field">
           <label for="restThumbnail">휴식창 썸네일 이미지</label>
           <input id="restThumbnail" class="control" type="file" accept="image/*">
         </div>
@@ -748,6 +764,8 @@
       const result = [
         makeItem("채택 가능 곡", `${accepted.length}곡 감지됨. 목표는 35~40곡입니다.`, accepted.length >= 35 && accepted.length <= 40 ? "ok" : "bad"),
         makeItem("채택곡 세트 총 길이", `${formatLongDuration(state.rest.acceptedDuration)} / 반복 ${state.rest.repeat}번 = ${formatLongDuration(state.rest.acceptedDuration * state.rest.repeat)}`, "ok"),
+        makeItem("자연 효과음", getSfxModeText(), "soft"),
+        makeItem("영상 효과 연동", getVisualSyncText(), "soft"),
         makeItem("제외 곡", `${rejected.length}곡 제외. 길이 초과/미달 또는 메타데이터 읽기 실패`, rejected.length ? "bad" : "ok"),
         makeItem("배치 규칙", warnings.length ? warnings.join("<br>") : "같은 트랙 중복 간격 경고 없음", "soft")
       ];
@@ -800,6 +818,23 @@
       $("#restSetDuration").textContent = formatLongDuration(state.rest.acceptedDuration);
       $("#restFinalDuration").textContent = formatLongDuration(finalDuration);
       $("#restCountdown").textContent = formatLongDuration(finalDuration || 8 * 60 * 60);
+    }
+
+    function getSfxModeText() {
+      const mode = $("#restAutoSfx").value;
+      const folderCount = $("#restSfxFolder").files.length;
+      if (mode === "off") return "효과음을 사용하지 않습니다.";
+      if (mode === "folder") return `선택한 효과음 폴더만 사용합니다. 현재 ${folderCount}개 파일이 선택되었습니다.`;
+      return folderCount
+        ? `선택한 효과음 ${folderCount}개를 우선 사용하고, 부족하면 기본 비/물/바람 계열 효과음을 보강합니다.`
+        : "기본 비소리, 물소리, 바람, 잔향 계열 효과음을 곡 분위기에 맞춰 자동 배치합니다.";
+    }
+
+    function getVisualSyncText() {
+      const mode = $("#restVisualSync").value;
+      if (mode === "off") return "효과음과 영상 효과를 따로 처리합니다.";
+      if (mode === "strong") return "비/물/바람 효과음 구간에 화면 밝기, 물결, 안개, 입자 효과를 선명하게 연동합니다.";
+      return "비/물/바람 효과음 구간에 아주 약한 밝기 변화, 물결, 안개, 입자 효과를 자연스럽게 연동합니다.";
     }
 
     function renderApiStatus(tone, title, detail) {
@@ -872,6 +907,8 @@
     $("#vocalImages").addEventListener("change", analyzeVocal);
     $("#restMp3").addEventListener("change", analyzeRest);
     $("#restSfxFolder").addEventListener("change", estimateCost);
+    $("#restAutoSfx").addEventListener("change", analyzeRest);
+    $("#restVisualSync").addEventListener("change", analyzeRest);
     $("#restScene").addEventListener("change", analyzeRest);
     $("#restRepeat").addEventListener("change", () => {
       state.rest.repeat = Number($("#restRepeat").value);
