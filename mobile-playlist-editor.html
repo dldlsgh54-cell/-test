@@ -506,6 +506,10 @@
           <input id="docSfxFolder" class="control" type="file" accept="audio/*" webkitdirectory directory multiple>
         </div>
         <div class="field">
+          <label for="docBgm">다큐 BGM</label>
+          <input id="docBgm" class="control" type="file" accept="audio/*">
+        </div>
+        <div class="field">
           <label for="docCategory">장면 기본 카테고리</label>
           <select id="docCategory">
             <option value="Documentary">Documentary</option>
@@ -741,6 +745,10 @@
           <input id="shortsThumbnail" class="control" type="file" accept="image/*">
         </div>
         <div class="field">
+          <label for="shortsBgm">숏츠 BGM</label>
+          <input id="shortsBgm" class="control" type="file" accept="audio/*">
+        </div>
+        <div class="field">
           <label for="shortsNarrationMemo">숏츠 나레이션 메모장</label>
           <input id="shortsNarrationMemo" class="control" type="file" accept=".txt,text/plain">
         </div>
@@ -927,16 +935,18 @@
       const docShortsScript = Array.from($("#docShortsScriptFile").files);
       const docShortsNarration = Array.from($("#docShortsNarrationMemo").files);
       const thumbnail = Array.from($("#docThumbnail").files);
+      const bgm = Array.from($("#docBgm").files);
       $("#docImageCount").textContent = `${images.length} / 35~50`;
       $("#docNarrationCount").textContent = `${narration.length} / 1`;
       $("#docScriptCount").textContent = `${script.length} / 1`;
-      const ready = images.length >= 35 && images.length <= 50 && narration.length === 1 && script.length === 1 && thumbnail.length === 1;
+      const ready = images.length >= 35 && images.length <= 50 && narration.length === 1 && script.length === 1 && thumbnail.length === 1 && bgm.length === 1;
       renderItems($("#docLog"), [
         makeItem("이미지", `${images.length}장 선택됨. 권장 범위는 35~50장입니다.`, images.length >= 35 && images.length <= 50 ? "ok" : "bad"),
         makeItem("나레이션 메모장", `${narration.length}개 선택됨`, narration.length === 1 ? "ok" : "bad"),
         makeItem("나레이션 포함 대본", `${script.length}개 선택됨`, script.length === 1 ? "ok" : "bad"),
         makeItem("다큐 숏츠 6개 대본", `${docShortsScript.length}개 선택됨 / 9:16 출력`, docShortsScript.length === 1 ? "ok" : "bad"),
         makeItem("다큐 숏츠 나레이션", `${docShortsNarration.length}개 선택됨 / 6개 분할`, docShortsNarration.length === 1 ? "ok" : "bad"),
+        makeItem("다큐 BGM", `${bgm.length}개 선택됨. 나레이션보다 작게 믹싱합니다.`, bgm.length === 1 ? "ok" : "bad"),
         makeItem("TTS 설정", `edge-tts / ko-KR-HyunsuNeural / ${getRateByCategory($("#docCategory").value, false)}`, "ok"),
         makeItem("효과음", $("#docSfxFolder").files.length ? `${$("#docSfxFolder").files.length}개 효과음을 GPT가 작게 배치합니다.` : "효과음 폴더가 없으면 기본 자연 효과음 설계를 사용합니다.", "soft")
       ], "다큐 파일을 넣고 분석하면 상태가 표시됩니다.");
@@ -948,14 +958,16 @@
       const narration = Array.from($("#shortsNarrationMemo").files);
       const script = Array.from($("#shortsScriptFile").files);
       const thumbnail = Array.from($("#shortsThumbnail").files);
+      const bgm = Array.from($("#shortsBgm").files);
       $("#shortsImageCount").textContent = `${images.length} / 선택`;
       $("#shortsNarrationCount").textContent = `${narration.length} / 1`;
       $("#shortsScriptCount").textContent = `${script.length} / 1`;
-      const ready = images.length > 0 && narration.length === 1 && script.length === 1 && thumbnail.length === 1;
+      const ready = images.length > 0 && narration.length === 1 && script.length === 1 && thumbnail.length === 1 && bgm.length === 1;
       renderItems($("#shortsLog"), [
         makeItem("이미지", `${images.length}장 선택됨`, images.length > 0 ? "ok" : "bad"),
         makeItem("숏츠 나레이션 메모장", `${narration.length}개 선택됨`, narration.length === 1 ? "ok" : "bad"),
         makeItem("나레이션 포함 대본", `${script.length}개 선택됨`, script.length === 1 ? "ok" : "bad"),
+        makeItem("숏츠 BGM", `${bgm.length}개 선택됨. 밝고 빠른 템포로 믹싱합니다.`, bgm.length === 1 ? "ok" : "bad"),
         makeItem("TTS 설정", "edge-tts / ko-KR-HyunsuNeural / +5%", "ok"),
         makeItem("효과음", $("#shortsSfxFolder").files.length ? `${$("#shortsSfxFolder").files.length}개 효과음을 GPT가 작게 배치합니다.` : "효과음 폴더가 없으면 기본 자연 효과음 설계를 사용합니다.", "soft")
       ], "숏츠 파일을 넣고 분석하면 상태가 표시됩니다.");
@@ -1115,6 +1127,7 @@
             script: fileSummary($("#docScriptFile")),
             docShortsScript: fileSummary($("#docShortsScriptFile")),
             docShortsNarrationMemo: fileSummary($("#docShortsNarrationMemo")),
+            bgm: fileSummary($("#docBgm")),
             sfxFolder: fileSummary($("#docSfxFolder"))
           },
           tts: {
@@ -1182,6 +1195,7 @@
         inputs: {
           images: fileSummary($("#shortsImages")),
           thumbnail: fileSummary($("#shortsThumbnail")),
+          bgm: fileSummary($("#shortsBgm")),
           narrationMemo: fileSummary($("#shortsNarrationMemo")),
           script: fileSummary($("#shortsScriptFile")),
           sfxFolder: fileSummary($("#shortsSfxFolder"))
@@ -1216,6 +1230,7 @@
         checks.push(["나레이션 포함 대본", plan.inputs.script.length === 1, `${plan.inputs.script.length}개`]);
         checks.push(["다큐 숏츠 대본", plan.inputs.docShortsScript.length === 1, `${plan.inputs.docShortsScript.length}개 / 6개 분할`]);
         checks.push(["다큐 숏츠 나레이션", plan.inputs.docShortsNarrationMemo.length === 1, `${plan.inputs.docShortsNarrationMemo.length}개 / 9:16`]);
+        checks.push(["다큐 BGM", plan.inputs.bgm.length === 1, `${plan.inputs.bgm.length}개`]);
         checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       } else if (plan.mode === "vocal") {
         checks.push(["MP3 40개", plan.inputs.mp3.length === 40, `${plan.inputs.mp3.length}개`]);
@@ -1231,6 +1246,7 @@
       } else {
         checks.push(["숏츠 이미지", plan.inputs.images.length > 0, `${plan.inputs.images.length}장`]);
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
+        checks.push(["숏츠 BGM", plan.inputs.bgm.length === 1, `${plan.inputs.bgm.length}개`]);
         checks.push(["숏츠 나레이션 메모장", plan.inputs.narrationMemo.length === 1, `${plan.inputs.narrationMemo.length}개`]);
         checks.push(["숏츠 대본", plan.inputs.script.length === 1, `${plan.inputs.script.length}개`]);
         checks.push(["숏츠 비율", plan.rules.aspectRatio === "9:16", plan.rules.aspectRatio]);
@@ -1333,7 +1349,7 @@
       let activeFiles = 0;
       let textSize = 0;
       if (state.activeTab === "doc") {
-        activeFiles = Array.from($("#docImages").files).length + ($("#docThumbnail").files.length ? 1 : 0) + Array.from($("#docSfxFolder").files).length;
+        activeFiles = Array.from($("#docImages").files).length + ($("#docThumbnail").files.length ? 1 : 0) + ($("#docBgm").files.length ? 1 : 0) + Array.from($("#docSfxFolder").files).length;
         textSize = ($("#docNarrationMemo").files[0]?.size || 0) + ($("#docScriptFile").files[0]?.size || 0) + ($("#docShortsScriptFile").files[0]?.size || 0) + ($("#docShortsNarrationMemo").files[0]?.size || 0);
       } else if (state.activeTab === "vocal") {
         activeFiles = Array.from($("#vocalMp3").files).length + Array.from($("#vocalImages").files).length + ($("#vocalThumbnail").files.length ? 1 : 0);
@@ -1341,7 +1357,7 @@
       } else if (state.activeTab === "rest") {
         activeFiles = Array.from($("#restMp3").files).length + Array.from($("#restSfxFolder").files).length + ($("#restScene").files.length ? 1 : 0) + ($("#restThumbnail").files.length ? 1 : 0);
       } else {
-        activeFiles = Array.from($("#shortsImages").files).length + ($("#shortsThumbnail").files.length ? 1 : 0) + Array.from($("#shortsSfxFolder").files).length;
+        activeFiles = Array.from($("#shortsImages").files).length + ($("#shortsThumbnail").files.length ? 1 : 0) + ($("#shortsBgm").files.length ? 1 : 0) + Array.from($("#shortsSfxFolder").files).length;
         textSize = ($("#shortsNarrationMemo").files[0]?.size || 0) + ($("#shortsScriptFile").files[0]?.size || 0);
       }
       const estimatedInput = Math.round(900 + activeFiles * 140 + textSize / 2.8);
@@ -1384,10 +1400,12 @@
     $("#docScriptFile").addEventListener("change", analyzeDoc);
     $("#docShortsScriptFile").addEventListener("change", analyzeDoc);
     $("#docShortsNarrationMemo").addEventListener("change", analyzeDoc);
+    $("#docBgm").addEventListener("change", analyzeDoc);
     $("#docSfxFolder").addEventListener("change", estimateCost);
     $("#docCategory").addEventListener("change", analyzeDoc);
     $("#shortsImages").addEventListener("change", analyzeShorts);
     $("#shortsThumbnail").addEventListener("change", analyzeShorts);
+    $("#shortsBgm").addEventListener("change", analyzeShorts);
     $("#shortsNarrationMemo").addEventListener("change", analyzeShorts);
     $("#shortsScriptFile").addEventListener("change", analyzeShorts);
     $("#shortsSfxFolder").addEventListener("change", estimateCost);
