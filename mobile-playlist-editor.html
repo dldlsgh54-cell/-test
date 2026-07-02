@@ -519,6 +519,28 @@
       </div>
 
       <div class="section">
+        <h2>다큐 숏츠 6개 제작</h2>
+        <div class="grid two">
+          <div class="field">
+            <label for="docShortsScriptFile">다큐 숏츠용 대본</label>
+            <input id="docShortsScriptFile" class="control" type="file" accept=".txt,.md,text/plain">
+          </div>
+          <div class="field">
+            <label for="docShortsNarrationMemo">다큐 숏츠용 나레이션</label>
+            <input id="docShortsNarrationMemo" class="control" type="file" accept=".txt,text/plain">
+          </div>
+          <div class="field">
+            <label>숏츠 분할 개수</label>
+            <div class="control">6개</div>
+          </div>
+          <div class="field">
+            <label>숏츠 출력 비율</label>
+            <div class="control">9:16 / YouTube Shorts</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
         <h2>Edge-TTS 나레이션</h2>
         <div class="grid two">
           <div class="field">
@@ -711,8 +733,8 @@
 
       <div class="section grid two">
         <div class="field">
-          <label for="shortsImages">숏츠 이미지</label>
-          <input id="shortsImages" class="control" type="file" accept="image/*" multiple>
+          <label for="shortsImages">숏츠 이미지 / 폴더</label>
+          <input id="shortsImages" class="control" type="file" accept="image/*" webkitdirectory directory multiple>
         </div>
         <div class="field">
           <label for="shortsThumbnail">숏츠 썸네일 이미지</label>
@@ -725,6 +747,10 @@
         <div class="field">
           <label for="shortsScriptFile">나레이션 포함 숏츠 대본</label>
           <input id="shortsScriptFile" class="control" type="file" accept=".txt,.md,text/plain">
+        </div>
+        <div class="field">
+          <label>출력 비율</label>
+          <div class="control">9:16 / 35초</div>
         </div>
         <div class="field">
           <label for="shortsSfxFolder">효과음 폴더</label>
@@ -898,6 +924,8 @@
       const images = Array.from($("#docImages").files);
       const narration = Array.from($("#docNarrationMemo").files);
       const script = Array.from($("#docScriptFile").files);
+      const docShortsScript = Array.from($("#docShortsScriptFile").files);
+      const docShortsNarration = Array.from($("#docShortsNarrationMemo").files);
       const thumbnail = Array.from($("#docThumbnail").files);
       $("#docImageCount").textContent = `${images.length} / 35~50`;
       $("#docNarrationCount").textContent = `${narration.length} / 1`;
@@ -907,6 +935,8 @@
         makeItem("이미지", `${images.length}장 선택됨. 권장 범위는 35~50장입니다.`, images.length >= 35 && images.length <= 50 ? "ok" : "bad"),
         makeItem("나레이션 메모장", `${narration.length}개 선택됨`, narration.length === 1 ? "ok" : "bad"),
         makeItem("나레이션 포함 대본", `${script.length}개 선택됨`, script.length === 1 ? "ok" : "bad"),
+        makeItem("다큐 숏츠 6개 대본", `${docShortsScript.length}개 선택됨 / 9:16 출력`, docShortsScript.length === 1 ? "ok" : "bad"),
+        makeItem("다큐 숏츠 나레이션", `${docShortsNarration.length}개 선택됨 / 6개 분할`, docShortsNarration.length === 1 ? "ok" : "bad"),
         makeItem("TTS 설정", `edge-tts / ko-KR-HyunsuNeural / ${getRateByCategory($("#docCategory").value, false)}`, "ok"),
         makeItem("효과음", $("#docSfxFolder").files.length ? `${$("#docSfxFolder").files.length}개 효과음을 GPT가 작게 배치합니다.` : "효과음 폴더가 없으면 기본 자연 효과음 설계를 사용합니다.", "soft")
       ], "다큐 파일을 넣고 분석하면 상태가 표시됩니다.");
@@ -1066,8 +1096,8 @@
           budgetUsd: state.api.budget
         },
         youtube: {
-          aspectRatio: "16:9",
-          resolution: mode === "vocal" ? $("#vocalQuality").value : "4k",
+          aspectRatio: mode === "shorts" ? "9:16" : "16:9",
+          resolution: mode === "shorts" ? "1080x1920" : mode === "vocal" ? $("#vocalQuality").value : "4k",
           fps: 30,
           videoCodec: "h264",
           audioCodec: "aac",
@@ -1083,6 +1113,8 @@
             thumbnail: fileSummary($("#docThumbnail")),
             narrationMemo: fileSummary($("#docNarrationMemo")),
             script: fileSummary($("#docScriptFile")),
+            docShortsScript: fileSummary($("#docShortsScriptFile")),
+            docShortsNarrationMemo: fileSummary($("#docShortsNarrationMemo")),
             sfxFolder: fileSummary($("#docSfxFolder"))
           },
           tts: {
@@ -1095,6 +1127,9 @@
           },
           rules: {
             imageCount: "35-50",
+            longformAspectRatio: "16:9",
+            docShortsCount: 6,
+            docShortsAspectRatio: "9:16",
             narrationNaturalness: "human-like",
             sfxDecisionByGpt: true,
             qualityMinimumScore: 95
@@ -1161,6 +1196,10 @@
         },
         rules: {
           shortsCount: Number($("#shortsCount").value),
+          aspectRatio: "9:16",
+          durationSeconds: 35,
+          scriptLengthCharacters: "120-150",
+          scenes: 8,
           narrationNaturalness: "same voice, faster delivery",
           sfxDecisionByGpt: true,
           qualityMinimumScore: 95
@@ -1175,6 +1214,8 @@
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
         checks.push(["나레이션 메모장", plan.inputs.narrationMemo.length === 1, `${plan.inputs.narrationMemo.length}개`]);
         checks.push(["나레이션 포함 대본", plan.inputs.script.length === 1, `${plan.inputs.script.length}개`]);
+        checks.push(["다큐 숏츠 대본", plan.inputs.docShortsScript.length === 1, `${plan.inputs.docShortsScript.length}개 / 6개 분할`]);
+        checks.push(["다큐 숏츠 나레이션", plan.inputs.docShortsNarrationMemo.length === 1, `${plan.inputs.docShortsNarrationMemo.length}개 / 9:16`]);
         checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       } else if (plan.mode === "vocal") {
         checks.push(["MP3 40개", plan.inputs.mp3.length === 40, `${plan.inputs.mp3.length}개`]);
@@ -1192,6 +1233,8 @@
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
         checks.push(["숏츠 나레이션 메모장", plan.inputs.narrationMemo.length === 1, `${plan.inputs.narrationMemo.length}개`]);
         checks.push(["숏츠 대본", plan.inputs.script.length === 1, `${plan.inputs.script.length}개`]);
+        checks.push(["숏츠 비율", plan.rules.aspectRatio === "9:16", plan.rules.aspectRatio]);
+        checks.push(["35초 구성", plan.rules.durationSeconds === 35, `${plan.rules.durationSeconds}초`]);
         checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       }
       checks.push(["YouTube 규격", true, `${plan.youtube.resolution} / ${plan.youtube.fps}fps / ${plan.youtube.audioCodec.toUpperCase()} 48kHz`]);
@@ -1291,7 +1334,7 @@
       let textSize = 0;
       if (state.activeTab === "doc") {
         activeFiles = Array.from($("#docImages").files).length + ($("#docThumbnail").files.length ? 1 : 0) + Array.from($("#docSfxFolder").files).length;
-        textSize = ($("#docNarrationMemo").files[0]?.size || 0) + ($("#docScriptFile").files[0]?.size || 0);
+        textSize = ($("#docNarrationMemo").files[0]?.size || 0) + ($("#docScriptFile").files[0]?.size || 0) + ($("#docShortsScriptFile").files[0]?.size || 0) + ($("#docShortsNarrationMemo").files[0]?.size || 0);
       } else if (state.activeTab === "vocal") {
         activeFiles = Array.from($("#vocalMp3").files).length + Array.from($("#vocalImages").files).length + ($("#vocalThumbnail").files.length ? 1 : 0);
         textSize = ($("#vocalLyrics").files[0]?.size || 0) / 2;
@@ -1339,6 +1382,8 @@
     $("#docThumbnail").addEventListener("change", analyzeDoc);
     $("#docNarrationMemo").addEventListener("change", analyzeDoc);
     $("#docScriptFile").addEventListener("change", analyzeDoc);
+    $("#docShortsScriptFile").addEventListener("change", analyzeDoc);
+    $("#docShortsNarrationMemo").addEventListener("change", analyzeDoc);
     $("#docSfxFolder").addEventListener("change", estimateCost);
     $("#docCategory").addEventListener("change", analyzeDoc);
     $("#shortsImages").addEventListener("change", analyzeShorts);
