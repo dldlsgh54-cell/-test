@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mobile Playlist Video Editor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101114;
+      --panel: #181b20;
+      --panel-2: #20242b;
+      --line: #313741;
+      --text: #f4f5f7;
+      --muted: #aeb6c2;
+      --soft: #6f7a89;
+      --accent: #48c78e;
+      --accent-2: #f6c85f;
+      --danger: #ff6b6b;
+      --focus: #72a8ff;
+      --radius: 8px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(100%, 920px);
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 12px 12px 88px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 8px 0 10px;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(16px);
+    }
+
+    .cost-strip {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .meter {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      min-height: 64px;
+    }
+
+    .meter span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .meter strong {
+      display: block;
+      margin-top: 6px;
+      font-size: clamp(18px, 5vw, 24px);
+      letter-spacing: 0;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 5px;
+    }
+
+    .tab {
+      min-height: 44px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .tab[aria-selected="true"] {
+      background: var(--text);
+      color: #111317;
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .section {
+      margin-top: 12px;
+      padding: 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .section p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    @media (min-width: 720px) {
+      .grid.two { grid-template-columns: 1fr 1fr; }
+      .grid.three { grid-template-columns: repeat(3, 1fr); }
+      .cost-strip { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .control,
+    textarea,
+    select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 10px;
+    }
+
+    textarea {
+      min-height: 152px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    input[type="file"] {
+      padding: 9px;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .btn.primary {
+      border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+      background: var(--accent);
+      color: #07120d;
+    }
+
+    .btn.warn {
+      border-color: color-mix(in srgb, var(--accent-2) 60%, var(--line));
+      background: var(--accent-2);
+      color: #151006;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    @media (min-width: 620px) {
+      .status-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .stat {
+      min-height: 76px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      border-radius: 6px;
+      padding: 10px;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 20px;
+    }
+
+    .preview {
+      aspect-ratio: 16 / 9;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #070809;
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(110deg, rgba(72,199,142,.16), transparent 42%),
+        radial-gradient(circle at 70% 22%, rgba(246,200,95,.18), transparent 28%),
+        linear-gradient(180deg, #171b22, #08090c);
+      animation: slowPan 8s ease-in-out infinite alternate;
+      transform-origin: center;
+    }
+
+    @keyframes slowPan {
+      from { transform: scale(1.02) translate3d(-1%, -1%, 0); filter: saturate(1); }
+      to { transform: scale(1.12) translate3d(1.5%, 1%, 0); filter: saturate(1.18); }
+    }
+
+    .thumbnail-text {
+      position: absolute;
+      left: 8%;
+      bottom: 14%;
+      display: grid;
+      gap: clamp(4px, 1vw, 8px);
+      text-shadow: 0 3px 16px rgba(0,0,0,.72);
+    }
+
+    .thumbnail-text strong {
+      font-size: clamp(24px, 7vw, 56px);
+      line-height: .98;
+      max-width: 12ch;
+    }
+
+    .thumbnail-text span {
+      font-size: clamp(14px, 3.5vw, 28px);
+      color: #f5d684;
+      font-weight: 800;
+    }
+
+    .now-playing {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      background: rgba(8, 9, 12, .62);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 6px;
+      backdrop-filter: blur(10px);
+    }
+
+    .play-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 rgba(72,199,142,.6);
+      animation: pulse 1.3s infinite;
+      flex: none;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(72,199,142,.65); }
+      70% { box-shadow: 0 0 0 12px rgba(72,199,142,0); }
+      100% { box-shadow: 0 0 0 0 rgba(72,199,142,0); }
+    }
+
+    .now-playing b {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 13px;
+    }
+
+    .countdown {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      min-width: 92px;
+      padding: 8px 10px;
+      text-align: center;
+      background: rgba(8, 9, 12, .66);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 6px;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      font-weight: 900;
+      backdrop-filter: blur(10px);
+    }
+
+    .log {
+      display: grid;
+      gap: 8px;
+      max-height: 280px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      border-radius: 6px;
+      padding: 10px;
+      display: grid;
+      gap: 5px;
+    }
+
+    .item strong {
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .item small {
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .ok { color: var(--accent); }
+    .bad { color: var(--danger); }
+    .soft { color: var(--soft); }
+
+    .bottom-actions {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 25;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(18px);
+      border-top: 1px solid var(--line);
+    }
+
+    .bottom-actions .inner {
+      width: min(100%, 920px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar">
+      <div class="cost-strip" aria-label="GPT API usage">
+        <div class="meter"><span>이번 예상 비용</span><strong id="sessionCost">$0.0000</strong></div>
+        <div class="meter"><span>누적 예상 비용</span><strong id="totalCost">$0.0000</strong></div>
+        <div class="meter"><span>입력 토큰</span><strong id="inputTokens">0</strong></div>
+        <div class="meter"><span>출력 토큰</span><strong id="outputTokens">0</strong></div>
+      </div>
+
+      <nav class="tabs" aria-label="작업 창 전환">
+        <button class="tab" data-tab="vocal" aria-selected="true">보컬창</button>
+        <button class="tab" data-tab="rest" aria-selected="false">휴식창</button>
+      </nav>
+    </div>
+
+    <section id="vocalView" class="view active" aria-labelledby="vocalTitle">
+      <div class="section">
+        <h2 id="vocalTitle">보컬 영상 자동 제작</h2>
+        <div class="status-grid">
+          <div class="stat"><span>MP3</span><strong id="vocalMp3Count">0 / 40</strong></div>
+          <div class="stat"><span>이미지</span><strong id="vocalImageCount">0 / 20</strong></div>
+          <div class="stat"><span>가사 트랙</span><strong id="vocalLyricCount">0 / 20</strong></div>
+          <div class="stat"><span>품질 기준</span><strong>95점</strong></div>
+        </div>
+      </div>
+
+      <div class="section grid two">
+        <div class="field">
+          <label for="vocalMp3">40곡 MP3</label>
+          <input id="vocalMp3" class="control" type="file" accept="audio/mpeg,audio/mp3" multiple>
+        </div>
+        <div class="field">
+          <label for="vocalImages">20개 이미지</label>
+          <input id="vocalImages" class="control" type="file" accept="image/*" multiple>
+        </div>
+        <div class="field">
+          <label for="vocalThumbnail">보컬창 썸네일 이미지</label>
+          <input id="vocalThumbnail" class="control" type="file" accept="image/*">
+        </div>
+        <div class="field">
+          <label for="vocalLyrics">Track01~20 가사 메모장</label>
+          <input id="vocalLyrics" class="control" type="file" accept=".txt,text/plain">
+        </div>
+        <div class="field">
+          <label for="vocalQuality">최종 규격</label>
+          <select id="vocalQuality">
+            <option value="4k">YouTube 4K 30fps</option>
+            <option value="fhd">YouTube 1080p 30fps</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>미리보기</h2>
+        <div class="preview">
+          <div class="scene"></div>
+          <div class="now-playing"><i class="play-dot"></i><b>Track01 - 재생 준비</b></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>가사 입력 상태</h2>
+        <div id="vocalLyricLog" class="log"></div>
+      </div>
+
+      <div class="section">
+        <h2>실행 대기창</h2>
+        <div id="vocalRunStatus" class="item">
+          <strong class="soft">분석 전</strong>
+          <small>분석을 완료하면 GPT 판단, 가사 싱크, YouTube 규격 검사, 렌더링 준비 단계가 여기에 표시됩니다.</small>
+        </div>
+        <div class="actions">
+          <button id="vocalPrepareBtn" class="btn primary" disabled>제작 실행 준비</button>
+          <button id="vocalRenderBtn" class="btn" disabled>최종 렌더링</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="restView" class="view" aria-labelledby="restTitle">
+      <div class="section">
+        <h2 id="restTitle">휴식 영상 자동 제작</h2>
+        <div class="status-grid">
+          <div class="stat"><span>채택 조건</span><strong>35~40곡</strong></div>
+          <div class="stat"><span>곡 길이</span><strong>2:40~5:00</strong></div>
+          <div class="stat"><span>씬 단위</span><strong>8초</strong></div>
+          <div class="stat"><span>세트 총 길이</span><strong id="restSetDurationTop">--:--:--</strong></div>
+        </div>
+      </div>
+
+      <div class="section grid two">
+        <div class="field">
+          <label for="restMp3">40곡 MP3</label>
+          <input id="restMp3" class="control" type="file" accept="audio/mpeg,audio/mp3" multiple>
+        </div>
+        <div class="field">
+          <label for="restScene">8초 반복 이미지 씬</label>
+          <input id="restScene" class="control" type="file" accept="image/*">
+        </div>
+        <div class="field">
+          <label for="restSfxFolder">효과음 폴더</label>
+          <input id="restSfxFolder" class="control" type="file" accept="audio/*" webkitdirectory directory multiple>
+        </div>
+        <div class="field">
+          <label for="restThumbnail">휴식창 썸네일 이미지</label>
+          <input id="restThumbnail" class="control" type="file" accept="image/*">
+        </div>
+        <div class="field">
+          <label for="restRepeat">반복 횟수</label>
+          <select id="restRepeat">
+            <option value="2">2번 반복</option>
+            <option value="3">3번 반복</option>
+            <option value="4">4번 반복</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>채택곡 세트 총 길이</label>
+          <div id="restSetDuration" class="control">--:--:--</div>
+        </div>
+        <div class="field">
+          <label>반복 적용 최종 길이</label>
+          <div id="restFinalDuration" class="control">--:--:--</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>휴식 씬 미리보기</h2>
+        <div class="preview">
+          <div class="scene"></div>
+          <div class="now-playing"><i class="play-dot"></i><b>휴식 영상 준비</b></div>
+          <div id="restCountdown" class="countdown">08:00:00</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>휴식창 검사 결과</h2>
+        <div id="restLog" class="log"></div>
+      </div>
+
+      <div class="section">
+        <h2>실행 대기창</h2>
+        <div id="restRunStatus" class="item">
+          <strong class="soft">분석 전</strong>
+          <small>분석을 완료하면 8시간 배치, 효과음 매칭, 썸네일 구성, YouTube 규격 검사, 렌더링 준비 단계가 여기에 표시됩니다.</small>
+        </div>
+        <div class="actions">
+          <button id="restPrepareBtn" class="btn primary" disabled>제작 실행 준비</button>
+          <button id="restRenderBtn" class="btn" disabled>최종 렌더링</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="bottom-actions">
+    <div class="inner">
+      <button id="analyzeBtn" class="btn primary">분석</button>
+      <button id="estimateBtn" class="btn warn">GPT 비용 예측</button>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      activeTab: "vocal",
+      costs: { input: 0, output: 0, session: 0, total: 0 },
+      modelRate: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
+      rest: { acceptedDuration: 0, repeat: 2 }
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    function setTab(tab) {
+      state.activeTab = tab;
+      $$(".tab").forEach((button) => {
+        button.setAttribute("aria-selected", String(button.dataset.tab === tab));
+      });
+      $("#vocalView").classList.toggle("active", tab === "vocal");
+      $("#restView").classList.toggle("active", tab === "rest");
+    }
+
+    function formatDuration(seconds) {
+      if (!Number.isFinite(seconds)) return "--:--";
+      const minutes = Math.floor(seconds / 60);
+      const rest = Math.round(seconds % 60).toString().padStart(2, "0");
+      return `${minutes}:${rest}`;
+    }
+
+    function formatLongDuration(seconds) {
+      if (!Number.isFinite(seconds) || seconds <= 0) return "--:--:--";
+      const total = Math.round(seconds);
+      const hours = Math.floor(total / 3600).toString().padStart(2, "0");
+      const minutes = Math.floor((total % 3600) / 60).toString().padStart(2, "0");
+      const rest = Math.floor(total % 60).toString().padStart(2, "0");
+      return `${hours}:${minutes}:${rest}`;
+    }
+
+    function readAudioDuration(file) {
+      return new Promise((resolve) => {
+        const audio = document.createElement("audio");
+        const url = URL.createObjectURL(file);
+        audio.preload = "metadata";
+        audio.onloadedmetadata = () => {
+          URL.revokeObjectURL(url);
+          resolve({ file, duration: audio.duration, ok: Number.isFinite(audio.duration) });
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve({ file, duration: NaN, ok: false });
+        };
+        audio.src = url;
+      });
+    }
+
+    function parseLyrics(text) {
+      const matches = [...text.matchAll(/(?:^|\n)(Track\d{2})\s+([^\n]+)\n([\s\S]*?)(?=\nTrack\d{2}\s+|\s*$)/g)];
+      return matches.map((match) => ({
+        track: match[1],
+        title: match[2].trim(),
+        lines: match[3].split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+      }));
+    }
+
+    function renderItems(target, items, emptyText) {
+      target.innerHTML = "";
+      if (!items.length) {
+        const empty = document.createElement("div");
+        empty.className = "item";
+        empty.innerHTML = `<small>${emptyText}</small>`;
+        target.appendChild(empty);
+        return;
+      }
+      items.forEach((item) => target.appendChild(item));
+    }
+
+    function makeItem(title, detail, tone = "soft") {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `<strong class="${tone}">${title}</strong><small>${detail}</small>`;
+      return div;
+    }
+
+    async function loadLyrics(fileInput, countTarget, logTarget) {
+      const file = fileInput.files[0];
+      if (!file) {
+        countTarget.textContent = "0 / 20";
+        renderItems(logTarget, [], "가사 메모장을 불러오면 Track01~20 상태가 표시됩니다.");
+        return [];
+      }
+      const text = await file.text();
+      const tracks = parseLyrics(text);
+      countTarget.textContent = `${tracks.length} / 20`;
+      renderItems(
+        logTarget,
+        tracks.map((track) => makeItem(`${track.track} ${track.title}`, `${track.lines.length}줄 감지됨`, track.lines.length ? "ok" : "bad")),
+        "가사 트랙을 찾지 못했습니다."
+      );
+      return tracks;
+    }
+
+    async function analyzeVocal() {
+      const mp3s = Array.from($("#vocalMp3").files);
+      const images = Array.from($("#vocalImages").files);
+      $("#vocalMp3Count").textContent = `${mp3s.length} / 40`;
+      $("#vocalImageCount").textContent = `${images.length} / 20`;
+      const lyrics = await loadLyrics($("#vocalLyrics"), $("#vocalLyricCount"), $("#vocalLyricLog"));
+      const ready = mp3s.length === 40 && images.length === 20 && lyrics.length === 20;
+      $("#vocalRunStatus").innerHTML = ready
+        ? `<strong class="ok">실행 준비 가능</strong><small>40곡, 20이미지, Track01~20 가사가 확인되었습니다. 다음 단계에서 GPT 판단과 렌더링 설계안을 만들 수 있습니다.</small>`
+        : `<strong class="bad">실행 준비 부족</strong><small>필요 조건: MP3 40개, 이미지 20개, 가사 Track01~20. 현재 MP3 ${mp3s.length}개, 이미지 ${images.length}개, 가사 ${lyrics.length}개입니다.</small>`;
+      $("#vocalPrepareBtn").disabled = !ready;
+      $("#vocalRenderBtn").disabled = true;
+    }
+
+    function getTrackKey(name) {
+      const match = name.match(/Track\s*0?(\d{1,2})|(?:^|[^0-9])0?(\d{1,2})(?:[^0-9]|$)/i);
+      const number = match ? Number(match[1] || match[2]) : null;
+      return number && number >= 1 && number <= 20 ? `Track${String(number).padStart(2, "0")}` : "Unknown";
+    }
+
+    async function analyzeRest() {
+      const mp3s = Array.from($("#restMp3").files);
+      const durations = await Promise.all(mp3s.map(readAudioDuration));
+      const accepted = [];
+      const rejected = [];
+
+      durations.forEach((entry) => {
+        const lengthOk = entry.duration >= 160 && entry.duration <= 300;
+        if (entry.ok && lengthOk) accepted.push(entry);
+        else rejected.push(entry);
+      });
+
+      state.rest.acceptedDuration = accepted.reduce((sum, entry) => sum + entry.duration, 0);
+      updateRestDurations();
+
+      const grouped = accepted.reduce((acc, entry) => {
+        const key = getTrackKey(entry.file.name);
+        acc[key] = acc[key] || [];
+        acc[key].push(entry);
+        return acc;
+      }, {});
+
+      const warnings = [];
+      Object.entries(grouped).forEach(([track, entries]) => {
+        if (track !== "Unknown" && entries.length >= 2) {
+          warnings.push(`${track}: 같은 트랙 2개는 최종 배치에서 최소 7곡 간격 필요`);
+        }
+      });
+
+      const result = [
+        makeItem("채택 가능 곡", `${accepted.length}곡 감지됨. 목표는 35~40곡입니다.`, accepted.length >= 35 && accepted.length <= 40 ? "ok" : "bad"),
+        makeItem("채택곡 세트 총 길이", `${formatLongDuration(state.rest.acceptedDuration)} / 반복 ${state.rest.repeat}번 = ${formatLongDuration(state.rest.acceptedDuration * state.rest.repeat)}`, "ok"),
+        makeItem("제외 곡", `${rejected.length}곡 제외. 길이 초과/미달 또는 메타데이터 읽기 실패`, rejected.length ? "bad" : "ok"),
+        makeItem("배치 규칙", warnings.length ? warnings.join("<br>") : "같은 트랙 중복 간격 경고 없음", "soft")
+      ];
+
+      rejected.slice(0, 20).forEach((entry) => {
+        result.push(makeItem(entry.file.name, `길이 ${formatDuration(entry.duration)} / 조건 2:40~5:00`, "bad"));
+      });
+
+      renderItems($("#restLog"), result, "40곡 MP3를 넣고 분석하면 휴식창 규칙 검사가 표시됩니다.");
+      const ready = accepted.length >= 35 && accepted.length <= 40 && $("#restScene").files.length === 1;
+      $("#restRunStatus").innerHTML = ready
+        ? `<strong class="ok">실행 준비 가능</strong><small>채택 가능 곡 ${accepted.length}개와 8초 이미지 씬이 확인되었습니다. 다음 단계에서 8시간 자연 배치와 효과음 매칭 설계안을 만들 수 있습니다.</small>`
+        : `<strong class="bad">실행 준비 부족</strong><small>필요 조건: 2:40~5:00 채택곡 35~40개, 8초 이미지 씬 1개. 현재 채택 가능 곡 ${accepted.length}개, 이미지 씬 ${$("#restScene").files.length}개입니다.</small>`;
+      $("#restPrepareBtn").disabled = !ready;
+      $("#restRenderBtn").disabled = true;
+    }
+
+    function markPrepared(kind) {
+      const target = kind === "vocal" ? $("#vocalRunStatus") : $("#restRunStatus");
+      const renderBtn = kind === "vocal" ? $("#vocalRenderBtn") : $("#restRenderBtn");
+      target.innerHTML = `<strong class="ok">렌더링 대기</strong><small>제작 설계안 생성 단계입니다. 실제 GPT API와 ffmpeg 서버가 연결되면 이 버튼이 최종 영상 렌더링 작업을 시작합니다.</small>`;
+      renderBtn.disabled = false;
+      estimateCost();
+    }
+
+    function showRenderPlaceholder(kind) {
+      const target = kind === "vocal" ? $("#vocalRunStatus") : $("#restRunStatus");
+      target.innerHTML = `<strong class="soft">렌더링 엔진 연결 필요</strong><small>현재 HTML은 모바일 조작 화면입니다. 최종 렌더링은 다음 단계에서 서버의 ffmpeg 실행창과 연결해야 시작됩니다.</small>`;
+    }
+
+    function formatClock(totalSeconds) {
+      return formatLongDuration(totalSeconds);
+    }
+
+    function previewCountdown() {
+      let remaining = Math.round(state.rest.acceptedDuration * state.rest.repeat);
+      if (!remaining) return;
+      $("#restCountdown").textContent = formatClock(remaining);
+      clearInterval(window.restCountdownTimer);
+      window.restCountdownTimer = setInterval(() => {
+        remaining = Math.max(0, remaining - 1);
+        $("#restCountdown").textContent = formatClock(remaining);
+        if (remaining === 0) clearInterval(window.restCountdownTimer);
+      }, 1000);
+    }
+
+    function updateRestDurations() {
+      const finalDuration = state.rest.acceptedDuration * state.rest.repeat;
+      $("#restSetDurationTop").textContent = formatLongDuration(state.rest.acceptedDuration);
+      $("#restSetDuration").textContent = formatLongDuration(state.rest.acceptedDuration);
+      $("#restFinalDuration").textContent = formatLongDuration(finalDuration);
+      $("#restCountdown").textContent = formatLongDuration(finalDuration || 8 * 60 * 60);
+    }
+
+    function estimateCost() {
+      const activeFiles = state.activeTab === "vocal"
+        ? Array.from($("#vocalMp3").files).length + Array.from($("#vocalImages").files).length + ($("#vocalThumbnail").files.length ? 1 : 0)
+        : Array.from($("#restMp3").files).length + Array.from($("#restSfxFolder").files).length + ($("#restScene").files.length ? 1 : 0) + ($("#restThumbnail").files.length ? 1 : 0);
+      const lyricSize = $("#vocalLyrics").files[0]?.size || 0;
+      const textSize = state.activeTab === "rest" ? 0 : lyricSize / 2;
+      const estimatedInput = Math.round(900 + activeFiles * 140 + textSize / 2.8);
+      const estimatedOutput = state.activeTab === "vocal" ? 1500 : 1900;
+      const session = (estimatedInput / 1_000_000) * state.modelRate.inputPerMillion +
+        (estimatedOutput / 1_000_000) * state.modelRate.outputPerMillion;
+
+      state.costs.input = estimatedInput;
+      state.costs.output = estimatedOutput;
+      state.costs.session = session;
+      state.costs.total += session;
+      $("#inputTokens").textContent = estimatedInput.toLocaleString("en-US");
+      $("#outputTokens").textContent = estimatedOutput.toLocaleString("en-US");
+      $("#sessionCost").textContent = `$${session.toFixed(4)}`;
+      $("#totalCost").textContent = `$${state.costs.total.toFixed(4)}`;
+    }
+
+    $$(".tab").forEach((button) => button.addEventListener("click", () => setTab(button.dataset.tab)));
+    $("#analyzeBtn").addEventListener("click", () => state.activeTab === "vocal" ? analyzeVocal() : analyzeRest());
+    $("#estimateBtn").addEventListener("click", estimateCost);
+    $("#vocalLyrics").addEventListener("change", () => loadLyrics($("#vocalLyrics"), $("#vocalLyricCount"), $("#vocalLyricLog")));
+    $("#vocalMp3").addEventListener("change", analyzeVocal);
+    $("#vocalImages").addEventListener("change", analyzeVocal);
+    $("#restMp3").addEventListener("change", analyzeRest);
+    $("#restSfxFolder").addEventListener("change", estimateCost);
+    $("#restScene").addEventListener("change", analyzeRest);
+    $("#restRepeat").addEventListener("change", () => {
+      state.rest.repeat = Number($("#restRepeat").value);
+      updateRestDurations();
+    });
+    $("#vocalPrepareBtn").addEventListener("click", () => markPrepared("vocal"));
+    $("#restPrepareBtn").addEventListener("click", () => markPrepared("rest"));
+    $("#vocalRenderBtn").addEventListener("click", () => showRenderPlaceholder("vocal"));
+    $("#restRenderBtn").addEventListener("click", () => {
+      previewCountdown();
+      showRenderPlaceholder("rest");
+    });
+
+    renderItems($("#vocalLyricLog"), [], "가사 메모장을 불러오면 Track01~20 상태가 표시됩니다.");
+    renderItems($("#restLog"), [], "40곡 MP3를 넣고 분석하면 휴식창 규칙 검사가 표시됩니다.");
+  </script>
+</body>
+</html>
