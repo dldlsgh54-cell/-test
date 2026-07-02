@@ -481,7 +481,7 @@
           <div class="stat"><span>이미지</span><strong id="docImageCount">0 / 35~50</strong></div>
           <div class="stat"><span>나레이션</span><strong id="docNarrationCount">0 / 1</strong></div>
           <div class="stat"><span>대본</span><strong id="docScriptCount">0 / 1</strong></div>
-          <div class="stat"><span>다큐 숏츠</span><strong id="docShortsStatus">0 / 2</strong></div>
+          <div class="stat"><span>다큐 숏츠</span><strong id="docShortsStatus">0 / 3</strong></div>
         </div>
       </div>
 
@@ -533,6 +533,10 @@
         </div>
         <div class="grid two">
           <div class="field">
+            <label for="docShortsLongformVideo">숏츠 원본 롱폼 영상</label>
+            <input id="docShortsLongformVideo" class="control" type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm,.m4v">
+          </div>
+          <div class="field">
             <label for="docShortsScriptFile">다큐 숏츠용 대본</label>
             <input id="docShortsScriptFile" class="control" type="file" accept=".txt,.md,text/plain">
           </div>
@@ -547,6 +551,10 @@
           <div class="field">
             <label>숏츠 출력 비율</label>
             <div class="control">9:16 / YouTube Shorts</div>
+          </div>
+          <div class="field">
+            <label>숏츠 고정 설정</label>
+            <div class="control">+15% / 이미지 1.5~2.5초 / 자막 12자</div>
           </div>
         </div>
       </div>
@@ -832,6 +840,25 @@
       renderPlan: null
     };
 
+    const DOCUMENTARY_TTS_PRESET = {
+      LongForm: {
+        voice: "ko-KR-HyunsuNeural",
+        rate: "-10%",
+        pitch: "0Hz",
+        image_duration: [5.0, 8.0],
+        subtitle_max_chars: 18,
+        bgm_volume: -22
+      },
+      Shorts: {
+        voice: "ko-KR-HyunsuNeural",
+        rate: "+15%",
+        pitch: "0Hz",
+        image_duration: [1.5, 2.5],
+        subtitle_max_chars: 12,
+        bgm_volume: -18
+      }
+    };
+
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
@@ -958,6 +985,7 @@
       const images = Array.from($("#docImages").files);
       const narration = Array.from($("#docNarrationMemo").files);
       const script = Array.from($("#docScriptFile").files);
+      const docShortsLongformVideo = Array.from($("#docShortsLongformVideo").files);
       const docShortsScript = Array.from($("#docShortsScriptFile").files);
       const docShortsNarration = Array.from($("#docShortsNarrationMemo").files);
       const thumbnail = Array.from($("#docThumbnail").files);
@@ -965,7 +993,7 @@
       $("#docImageCount").textContent = `${images.length} / 35~50`;
       $("#docNarrationCount").textContent = `${narration.length} / 1`;
       $("#docScriptCount").textContent = `${script.length} / 1`;
-      $("#docShortsStatus").textContent = `${docShortsScript.length + docShortsNarration.length} / 2`;
+      $("#docShortsStatus").textContent = `${docShortsLongformVideo.length + docShortsScript.length + docShortsNarration.length} / 3`;
       $("#docShortsScriptCount").textContent = `${docShortsScript.length} / 1`;
       $("#docShortsNarrationCount").textContent = `${docShortsNarration.length} / 1`;
       const ready = images.length >= 35 && images.length <= 50 && narration.length === 1 && script.length === 1 && thumbnail.length === 1 && bgm.length === 1;
@@ -973,8 +1001,11 @@
         makeItem("이미지", `${images.length}장 선택됨. 권장 범위는 35~50장입니다.`, images.length >= 35 && images.length <= 50 ? "ok" : "bad"),
         makeItem("나레이션 메모장", `${narration.length}개 선택됨`, narration.length === 1 ? "ok" : "bad"),
         makeItem("나레이션 포함 대본", `${script.length}개 선택됨`, script.length === 1 ? "ok" : "bad"),
+        makeItem("숏츠 원본 롱폼 영상", `${docShortsLongformVideo.length}개 선택됨 / 롱폼을 잘라 6개 숏츠로 제작`, docShortsLongformVideo.length === 1 ? "ok" : "bad"),
         makeItem("다큐 숏츠 6개 대본", `${docShortsScript.length}개 선택됨 / 9:16 출력`, docShortsScript.length === 1 ? "ok" : "bad"),
         makeItem("다큐 숏츠 나레이션", `${docShortsNarration.length}개 선택됨 / 6개 분할`, docShortsNarration.length === 1 ? "ok" : "bad"),
+        makeItem("롱폼 고정 설정", `${DOCUMENTARY_TTS_PRESET.LongForm.rate} / 이미지 ${DOCUMENTARY_TTS_PRESET.LongForm.image_duration.join("~")}초 / 자막 ${DOCUMENTARY_TTS_PRESET.LongForm.subtitle_max_chars}자`, "ok"),
+        makeItem("숏츠 고정 설정", `${DOCUMENTARY_TTS_PRESET.Shorts.rate} / 이미지 ${DOCUMENTARY_TTS_PRESET.Shorts.image_duration.join("~")}초 / 자막 ${DOCUMENTARY_TTS_PRESET.Shorts.subtitle_max_chars}자`, "ok"),
         makeItem("다큐 BGM", `${bgm.length}개 선택됨. 나레이션보다 작게 믹싱합니다.`, bgm.length === 1 ? "ok" : "bad"),
         makeItem("TTS 설정", `edge-tts / ko-KR-HyunsuNeural / ${getRateByCategory($("#docCategory").value, false)}`, "ok"),
         makeItem("효과음", $("#docSfxFolder").files.length ? `${$("#docSfxFolder").files.length}개 효과음을 GPT가 작게 배치합니다.` : "효과음 폴더가 없으면 기본 자연 효과음 설계를 사용합니다.", "soft")
@@ -1203,6 +1234,7 @@
             thumbnail: fileSummary($("#docThumbnail")),
             narrationMemo: fileSummary($("#docNarrationMemo")),
             script: fileSummary($("#docScriptFile")),
+            docShortsLongformVideo: fileSummary($("#docShortsLongformVideo")),
             docShortsScript: fileSummary($("#docShortsScriptFile")),
             docShortsNarrationMemo: fileSummary($("#docShortsNarrationMemo")),
             bgm: fileSummary($("#docBgm")),
@@ -1210,17 +1242,25 @@
           },
           tts: {
             engine: "edge-tts",
-            voice: "ko-KR-HyunsuNeural",
-            rate: getRateByCategory($("#docCategory").value, false),
-            pitch: "0Hz",
+            voice: DOCUMENTARY_TTS_PRESET.LongForm.voice,
+            rate: DOCUMENTARY_TTS_PRESET.LongForm.rate,
+            pitch: DOCUMENTARY_TTS_PRESET.LongForm.pitch,
             volume: "+0%",
-            outputPath: "Projects/ProjectName/Audio/long_narration.mp3"
+            outputPath: "Projects/ProjectName/Audio/long_narration.mp3",
+            preset: DOCUMENTARY_TTS_PRESET
           },
           rules: {
             imageCount: "35-50",
             longformAspectRatio: "16:9",
             docShortsCount: 6,
             docShortsAspectRatio: "9:16",
+            docShortsSource: "cut_from_longform_video",
+            longformImageDurationSeconds: DOCUMENTARY_TTS_PRESET.LongForm.image_duration,
+            shortsImageDurationSeconds: DOCUMENTARY_TTS_PRESET.Shorts.image_duration,
+            longformSubtitleMaxChars: DOCUMENTARY_TTS_PRESET.LongForm.subtitle_max_chars,
+            shortsSubtitleMaxChars: DOCUMENTARY_TTS_PRESET.Shorts.subtitle_max_chars,
+            longformBgmVolumeDb: DOCUMENTARY_TTS_PRESET.LongForm.bgm_volume,
+            shortsBgmVolumeDb: DOCUMENTARY_TTS_PRESET.Shorts.bgm_volume,
             narrationNaturalness: "human-like",
             sfxDecisionByGpt: true,
             qualityMinimumScore: 95
@@ -1306,11 +1346,14 @@
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
         checks.push(["나레이션 메모장", plan.inputs.narrationMemo.length === 1, `${plan.inputs.narrationMemo.length}개`]);
         checks.push(["나레이션 포함 대본", plan.inputs.script.length === 1, `${plan.inputs.script.length}개`]);
+        checks.push(["숏츠 원본 롱폼 영상", plan.inputs.docShortsLongformVideo.length === 1, `${plan.inputs.docShortsLongformVideo.length}개`]);
         checks.push(["다큐 숏츠 대본", plan.inputs.docShortsScript.length === 1, `${plan.inputs.docShortsScript.length}개 / 6개 분할`]);
         checks.push(["다큐 숏츠 나레이션", plan.inputs.docShortsNarrationMemo.length === 1, `${plan.inputs.docShortsNarrationMemo.length}개 / 9:16`]);
         checks.push(["다큐 BGM", plan.inputs.bgm.length === 1, `${plan.inputs.bgm.length}개`]);
         checks.push(["다큐 롱폼 비율", plan.youtube.aspectRatio === "16:9", plan.youtube.aspectRatio]);
         checks.push(["다큐 숏츠 6개", plan.rules.docShortsCount === 6 && plan.rules.docShortsAspectRatio === "9:16", `${plan.rules.docShortsCount}개 / ${plan.rules.docShortsAspectRatio}`]);
+        checks.push(["롱폼/숏츠 속도 분리", plan.tts.preset.LongForm.rate === "-10%" && plan.tts.preset.Shorts.rate === "+15%", `${plan.tts.preset.LongForm.rate} / ${plan.tts.preset.Shorts.rate}`]);
+        checks.push(["자막 길이 분리", plan.rules.longformSubtitleMaxChars === 18 && plan.rules.shortsSubtitleMaxChars === 12, `롱폼 ${plan.rules.longformSubtitleMaxChars}자 / 숏츠 ${plan.rules.shortsSubtitleMaxChars}자`]);
         checks.push(["나레이션 우선 믹싱", plan.inputs.bgm.length === 1, "BGM은 나레이션보다 작게"]);
         checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       } else if (plan.mode === "vocal") {
@@ -1439,7 +1482,7 @@
       let activeFiles = 0;
       let textSize = 0;
       if (state.activeTab === "doc") {
-        activeFiles = Array.from($("#docImages").files).length + ($("#docThumbnail").files.length ? 1 : 0) + ($("#docBgm").files.length ? 1 : 0) + Array.from($("#docSfxFolder").files).length;
+        activeFiles = Array.from($("#docImages").files).length + ($("#docThumbnail").files.length ? 1 : 0) + ($("#docBgm").files.length ? 1 : 0) + ($("#docShortsLongformVideo").files.length ? 1 : 0) + Array.from($("#docSfxFolder").files).length;
         textSize = ($("#docNarrationMemo").files[0]?.size || 0) + ($("#docScriptFile").files[0]?.size || 0) + ($("#docShortsScriptFile").files[0]?.size || 0) + ($("#docShortsNarrationMemo").files[0]?.size || 0);
       } else if (state.activeTab === "vocal") {
         activeFiles = Array.from($("#vocalMp3").files).length + Array.from($("#vocalImages").files).length + ($("#vocalThumbnail").files.length ? 1 : 0);
@@ -1495,6 +1538,7 @@
     $("#docThumbnail").addEventListener("change", analyzeDoc);
     $("#docNarrationMemo").addEventListener("change", analyzeDoc);
     $("#docScriptFile").addEventListener("change", analyzeDoc);
+    $("#docShortsLongformVideo").addEventListener("change", analyzeDoc);
     $("#docShortsScriptFile").addEventListener("change", analyzeDoc);
     $("#docShortsNarrationMemo").addEventListener("change", analyzeDoc);
     $("#docBgm").addEventListener("change", analyzeDoc);
