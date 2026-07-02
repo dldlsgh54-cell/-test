@@ -365,6 +365,26 @@
     .bad { color: var(--danger); }
     .soft { color: var(--soft); }
 
+    .api-status {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      border-radius: 6px;
+      padding: 10px;
+      min-height: 58px;
+    }
+
+    .api-status strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .api-status small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
     .bottom-actions {
       position: fixed;
       left: 0;
@@ -401,6 +421,36 @@
         <button class="tab" data-tab="rest" aria-selected="false">휴식창</button>
       </nav>
     </div>
+
+    <section class="section" aria-labelledby="apiTitle">
+      <h2 id="apiTitle">ChatGPT API 연결</h2>
+      <div class="grid two">
+        <div class="field">
+          <label for="apiKey">API 키</label>
+          <input id="apiKey" class="control" type="password" autocomplete="off" placeholder="sk-...">
+        </div>
+        <div class="field">
+          <label for="apiModel">사용 모델</label>
+          <input id="apiModel" class="control" type="text" value="gpt-5.4-mini">
+        </div>
+        <div class="field">
+          <label for="apiProxy">연결 주소</label>
+          <input id="apiProxy" class="control" type="text" value="/api/openai-check">
+        </div>
+        <div class="field">
+          <label>연결 상태</label>
+          <div id="apiStatus" class="api-status">
+            <strong class="soft">미연결</strong>
+            <small>API 키와 mini 모델을 입력한 뒤 연결 확인을 누르세요.</small>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="apiSaveBtn" class="btn">현재 입력값 적용</button>
+        <button id="apiCheckBtn" class="btn primary">연결 확인</button>
+      </div>
+      <p>보안을 위해 API 키는 브라우저 저장소에 저장하지 않습니다. 실제 제작 연결은 서버 프록시 주소를 통해 확인하는 방식이 가장 안전합니다.</p>
+    </section>
 
     <section id="vocalView" class="view active" aria-labelledby="vocalTitle">
       <div class="section">
@@ -551,7 +601,8 @@
       activeTab: "vocal",
       costs: { input: 0, output: 0, session: 0, total: 0 },
       modelRate: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
-      rest: { acceptedDuration: 0, repeat: 2 }
+      rest: { acceptedDuration: 0, repeat: 2 },
+      api: { key: "", model: "gpt-5.4-mini", proxy: "/api/openai-check", connected: false }
     };
 
     const $ = (selector) => document.querySelector(selector);
@@ -751,6 +802,45 @@
       $("#restCountdown").textContent = formatLongDuration(finalDuration || 8 * 60 * 60);
     }
 
+    function renderApiStatus(tone, title, detail) {
+      $("#apiStatus").innerHTML = `<strong class="${tone}">${title}</strong><small>${detail}</small>`;
+    }
+
+    function applyApiSettings() {
+      state.api.key = $("#apiKey").value.trim();
+      state.api.model = $("#apiModel").value.trim() || "gpt-5.4-mini";
+      state.api.proxy = $("#apiProxy").value.trim() || "/api/openai-check";
+      state.api.connected = false;
+      renderApiStatus("soft", "입력값 적용됨", `${state.api.model} 모델로 연결 확인 대기 중입니다.`);
+    }
+
+    async function checkApiConnection() {
+      applyApiSettings();
+      if (!state.api.key) {
+        renderApiStatus("bad", "API 키 필요", "연결 확인을 하려면 API 키를 입력해야 합니다.");
+        return;
+      }
+      if (!state.api.key.startsWith("sk-")) {
+        renderApiStatus("bad", "API 키 형식 확인", "OpenAI API 키는 보통 sk- 로 시작합니다.");
+        return;
+      }
+
+      renderApiStatus("soft", "연결 확인 중", "서버 프록시에 mini 모델 연결 확인을 요청하고 있습니다.");
+      try {
+        const response = await fetch(state.api.proxy, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ apiKey: state.api.key, model: state.api.model })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        state.api.connected = true;
+        renderApiStatus("ok", "연결 확인 완료", `${state.api.model} 모델을 사용할 준비가 되었습니다.`);
+      } catch (error) {
+        state.api.connected = false;
+        renderApiStatus("bad", "프록시 연결 필요", `현재 정적 HTML 상태라 직접 연결은 제한될 수 있습니다. 서버 연결 주소를 확인하세요. (${error.message})`);
+      }
+    }
+
     function estimateCost() {
       const activeFiles = state.activeTab === "vocal"
         ? Array.from($("#vocalMp3").files).length + Array.from($("#vocalImages").files).length + ($("#vocalThumbnail").files.length ? 1 : 0)
@@ -775,6 +865,8 @@
     $$(".tab").forEach((button) => button.addEventListener("click", () => setTab(button.dataset.tab)));
     $("#analyzeBtn").addEventListener("click", () => state.activeTab === "vocal" ? analyzeVocal() : analyzeRest());
     $("#estimateBtn").addEventListener("click", estimateCost);
+    $("#apiSaveBtn").addEventListener("click", applyApiSettings);
+    $("#apiCheckBtn").addEventListener("click", checkApiConnection);
     $("#vocalLyrics").addEventListener("change", () => loadLyrics($("#vocalLyrics"), $("#vocalLyricCount"), $("#vocalLyricLog")));
     $("#vocalMp3").addEventListener("change", analyzeVocal);
     $("#vocalImages").addEventListener("change", analyzeVocal);
