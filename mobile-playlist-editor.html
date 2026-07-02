@@ -438,6 +438,10 @@
           <input id="apiProxy" class="control" type="text" value="/api/openai-check">
         </div>
         <div class="field">
+          <label for="apiBudget">작업당 GPT 예산 제한 USD</label>
+          <input id="apiBudget" class="control" type="number" min="0" step="0.001" value="0.050">
+        </div>
+        <div class="field">
           <label>연결 상태</label>
           <div id="apiStatus" class="api-status">
             <strong class="soft">미연결</strong>
@@ -450,6 +454,21 @@
         <button id="apiCheckBtn" class="btn primary">연결 확인</button>
       </div>
       <p>보안을 위해 API 키는 브라우저 저장소에 저장하지 않습니다. 실제 제작 연결은 서버 프록시 주소를 통해 확인하는 방식이 가장 안전합니다.</p>
+    </section>
+
+    <section class="section" aria-labelledby="renderManagerTitle">
+      <h2 id="renderManagerTitle">제작 관리</h2>
+      <div class="status-grid">
+        <div class="stat"><span>제작 설계안</span><strong id="planStatus">미생성</strong></div>
+        <div class="stat"><span>품질 검사</span><strong id="qualityStatus">대기</strong></div>
+        <div class="stat"><span>렌더링 진행률</span><strong id="renderProgress">0%</strong></div>
+        <div class="stat"><span>YouTube 규격</span><strong id="youtubeStatus">대기</strong></div>
+      </div>
+      <div class="actions">
+        <button id="makePlanBtn" class="btn primary">설계안 생성</button>
+        <button id="downloadPlanBtn" class="btn" disabled>JSON 저장</button>
+      </div>
+      <div id="qualityLog" class="log" style="margin-top: 10px;"></div>
     </section>
 
     <section id="vocalView" class="view active" aria-labelledby="vocalTitle">
@@ -617,8 +636,9 @@
       activeTab: "vocal",
       costs: { input: 0, output: 0, session: 0, total: 0 },
       modelRate: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
-      rest: { acceptedDuration: 0, repeat: 2 },
-      api: { key: "", model: "gpt-5.4-mini", proxy: "/api/openai-check", connected: false }
+      rest: { acceptedDuration: 0, acceptedCount: 0, repeat: 2 },
+      api: { key: "", model: "gpt-5.4-mini", proxy: "/api/openai-check", connected: false, budget: 0.05 },
+      renderPlan: null
     };
 
     const $ = (selector) => document.querySelector(selector);
@@ -745,6 +765,7 @@
       });
 
       state.rest.acceptedDuration = accepted.reduce((sum, entry) => sum + entry.duration, 0);
+      state.rest.acceptedCount = accepted.length;
       updateRestDurations();
 
       const grouped = accepted.reduce((acc, entry) => {
@@ -820,6 +841,122 @@
       $("#restCountdown").textContent = formatLongDuration(finalDuration || 8 * 60 * 60);
     }
 
+    function fileSummary(input) {
+      return Array.from(input.files).map((file) => ({
+        name: file.name,
+        size: file.size,
+        type: file.type || "unknown"
+      }));
+    }
+
+    function buildRenderPlan() {
+      const mode = state.activeTab;
+      const common = {
+        mode,
+        createdAt: new Date().toISOString(),
+        api: {
+          model: state.api.model,
+          connected: state.api.connected,
+          budgetUsd: state.api.budget
+        },
+        youtube: {
+          aspectRatio: "16:9",
+          resolution: mode === "vocal" ? $("#vocalQuality").value : "4k",
+          fps: 30,
+          videoCodec: "h264",
+          audioCodec: "aac",
+          sampleRate: 48000
+        }
+      };
+
+      if (mode === "vocal") {
+        return {
+          ...common,
+          inputs: {
+            mp3: fileSummary($("#vocalMp3")),
+            images: fileSummary($("#vocalImages")),
+            thumbnail: fileSummary($("#vocalThumbnail")),
+            lyrics: fileSummary($("#vocalLyrics"))
+          },
+          rules: {
+            selectedTracks: 20,
+            imagePerTrack: true,
+            lyricSyncRequired: true,
+            qualityMinimumScore: 95
+          }
+        };
+      }
+
+      return {
+        ...common,
+        inputs: {
+          mp3: fileSummary($("#restMp3")),
+          videoScene: fileSummary($("#restScene")),
+          thumbnail: fileSummary($("#restThumbnail")),
+          sfxFolder: fileSummary($("#restSfxFolder"))
+        },
+        rules: {
+          acceptedTrackCount: "35-40",
+          durationRangeSeconds: [140, 300],
+          duplicateTrackGap: 7,
+          repeat: state.rest.repeat,
+          setDurationSeconds: Math.round(state.rest.acceptedDuration),
+          finalDurationSeconds: Math.round(state.rest.acceptedDuration * state.rest.repeat),
+          sfxMode: $("#restAutoSfx").value,
+          visualSync: $("#restVisualSync").value
+        }
+      };
+    }
+
+    function runQualityChecks(plan) {
+      const checks = [];
+      if (plan.mode === "vocal") {
+        checks.push(["MP3 40개", plan.inputs.mp3.length === 40, `${plan.inputs.mp3.length}개`]);
+        checks.push(["이미지 20개", plan.inputs.images.length === 20, `${plan.inputs.images.length}개`]);
+        checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
+        checks.push(["가사 파일", plan.inputs.lyrics.length === 1, `${plan.inputs.lyrics.length}개`]);
+      } else {
+        checks.push(["채택곡 35~40개", state.rest.acceptedCount >= 35 && state.rest.acceptedCount <= 40, `${state.rest.acceptedCount}개 채택`]);
+        checks.push(["영상 씬 1개", plan.inputs.videoScene.length === 1, `${plan.inputs.videoScene.length}개`]);
+        checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
+        checks.push(["세트 총 길이 계산", plan.rules.setDurationSeconds > 0, formatLongDuration(plan.rules.setDurationSeconds)]);
+        checks.push(["최종 길이 계산", plan.rules.finalDurationSeconds > 0, formatLongDuration(plan.rules.finalDurationSeconds)]);
+      }
+      checks.push(["YouTube 규격", true, `${plan.youtube.resolution} / ${plan.youtube.fps}fps / ${plan.youtube.audioCodec.toUpperCase()} 48kHz`]);
+      checks.push(["GPT 예산 제한", state.costs.session <= state.api.budget, `$${state.costs.session.toFixed(4)} / $${state.api.budget.toFixed(3)}`]);
+      return checks;
+    }
+
+    function renderQualityLog(checks) {
+      const items = checks.map(([title, ok, detail]) => makeItem(title, detail, ok ? "ok" : "bad"));
+      renderItems($("#qualityLog"), items, "설계안을 생성하면 품질 체크리스트가 표시됩니다.");
+      const passed = checks.filter(([, ok]) => ok).length;
+      const score = Math.round((passed / checks.length) * 100);
+      $("#qualityStatus").textContent = `${score}점`;
+      $("#youtubeStatus").textContent = checks.find(([title]) => title === "YouTube 규격")?.[1] ? "통과" : "확인";
+      $("#renderProgress").textContent = score >= 95 ? "준비됨" : "보완 필요";
+    }
+
+    function makeRenderPlan() {
+      estimateCost();
+      const plan = buildRenderPlan();
+      const checks = runQualityChecks(plan);
+      state.renderPlan = { ...plan, checks: checks.map(([title, ok, detail]) => ({ title, ok, detail })) };
+      $("#planStatus").textContent = "생성됨";
+      $("#downloadPlanBtn").disabled = false;
+      renderQualityLog(checks);
+    }
+
+    function downloadRenderPlan() {
+      if (!state.renderPlan) return;
+      const blob = new Blob([JSON.stringify(state.renderPlan, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${state.renderPlan.mode}-render-plan.json`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
     function getSfxModeText() {
       const mode = $("#restAutoSfx").value;
       const folderCount = $("#restSfxFolder").files.length;
@@ -845,6 +982,7 @@
       state.api.key = $("#apiKey").value.trim();
       state.api.model = $("#apiModel").value.trim() || "gpt-5.4-mini";
       state.api.proxy = $("#apiProxy").value.trim() || "/api/openai-check";
+      state.api.budget = Number($("#apiBudget").value) || 0.05;
       state.api.connected = false;
       renderApiStatus("soft", "입력값 적용됨", `${state.api.model} 모델로 연결 확인 대기 중입니다.`);
     }
@@ -902,6 +1040,8 @@
     $("#estimateBtn").addEventListener("click", estimateCost);
     $("#apiSaveBtn").addEventListener("click", applyApiSettings);
     $("#apiCheckBtn").addEventListener("click", checkApiConnection);
+    $("#makePlanBtn").addEventListener("click", makeRenderPlan);
+    $("#downloadPlanBtn").addEventListener("click", downloadRenderPlan);
     $("#vocalLyrics").addEventListener("change", () => loadLyrics($("#vocalLyrics"), $("#vocalLyricCount"), $("#vocalLyricLog")));
     $("#vocalMp3").addEventListener("change", analyzeVocal);
     $("#vocalImages").addEventListener("change", analyzeVocal);
