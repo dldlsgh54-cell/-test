@@ -532,8 +532,8 @@
           <input id="restMp3" class="control" type="file" accept="audio/mpeg,audio/mp3" multiple>
         </div>
         <div class="field">
-          <label for="restScene">8초 반복 이미지 씬</label>
-          <input id="restScene" class="control" type="file" accept="image/*">
+          <label for="restScene">8초 반복 영상 씬</label>
+          <input id="restScene" class="control" type="file" accept="video/*">
         </div>
         <div class="field">
           <label for="restSfxFolder">효과음 폴더</label>
@@ -759,8 +759,8 @@
       renderItems($("#restLog"), result, "40곡 MP3를 넣고 분석하면 휴식창 규칙 검사가 표시됩니다.");
       const ready = accepted.length >= 35 && accepted.length <= 40 && $("#restScene").files.length === 1;
       $("#restRunStatus").innerHTML = ready
-        ? `<strong class="ok">실행 준비 가능</strong><small>채택 가능 곡 ${accepted.length}개와 8초 이미지 씬이 확인되었습니다. 다음 단계에서 8시간 자연 배치와 효과음 매칭 설계안을 만들 수 있습니다.</small>`
-        : `<strong class="bad">실행 준비 부족</strong><small>필요 조건: 2:40~5:00 채택곡 35~40개, 8초 이미지 씬 1개. 현재 채택 가능 곡 ${accepted.length}개, 이미지 씬 ${$("#restScene").files.length}개입니다.</small>`;
+        ? `<strong class="ok">실행 준비 가능</strong><small>채택 가능 곡 ${accepted.length}개와 8초 영상 씬이 확인되었습니다. 다음 단계에서 자연 배치와 효과음 매칭 설계안을 만들 수 있습니다.</small>`
+        : `<strong class="bad">실행 준비 부족</strong><small>필요 조건: 2:40~5:00 채택곡 35~40개, 8초 영상 씬 1개. 현재 채택 가능 곡 ${accepted.length}개, 영상 씬 ${$("#restScene").files.length}개입니다.</small>`;
       $("#restPrepareBtn").disabled = !ready;
       $("#restRenderBtn").disabled = true;
     }
