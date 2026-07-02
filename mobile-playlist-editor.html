@@ -502,6 +502,16 @@
 
     <section class="section" aria-labelledby="renderManagerTitle">
       <h2 id="renderManagerTitle">제작 관리</h2>
+      <div class="grid two" style="margin-bottom: 10px;">
+        <div class="field">
+          <label for="projectName">프로젝트 이름</label>
+          <input id="projectName" class="control" type="text" value="ProjectName">
+        </div>
+        <div class="field">
+          <label for="outputName">출력 파일 이름</label>
+          <input id="outputName" class="control" type="text" value="final_video">
+        </div>
+      </div>
       <div class="status-grid">
         <div class="stat"><span>현재 창</span><strong id="activeModeStatus">다큐</strong></div>
         <div class="stat"><span>제작 설계안</span><strong id="planStatus">미생성</strong></div>
@@ -530,6 +540,7 @@
           <div class="stat"><span>나레이션</span><strong id="docNarrationCount">0 / 1</strong></div>
           <div class="stat"><span>대본</span><strong id="docScriptCount">0 / 1</strong></div>
           <div class="stat"><span>다큐 숏츠</span><strong id="docShortsStatus">0 / 3</strong></div>
+          <div class="stat"><span>자산 인덱스</span><strong id="docAssetStatus">미확인</strong></div>
         </div>
       </div>
 
@@ -952,6 +963,7 @@ INFOGRAPHIC=희토류 공급망
       costs: { input: 0, output: 0, session: 0, total: 0 },
       modelRate: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
       rest: { acceptedDuration: 0, acceptedCount: 0, repeat: 2 },
+      doc: { assetIndex: { ok: false, aiCount: 0, vsCount: 0, usableCount: 0, error: "" } },
       api: { key: "", model: "gpt-5.4-mini", proxy: "/api/openai-check", connected: false, budget: 0.05 },
       renderPlan: null
     };
@@ -1176,9 +1188,10 @@ INFOGRAPHIC=희토류 공급망
       $("#vocalRenderBtn").disabled = true;
     }
 
-    function analyzeDoc() {
+    async function analyzeDoc() {
       const images = Array.from($("#docImages").files);
       const assetIndex = Array.from($("#docAssetIndex").files);
+      const assetInfo = await validateDocAssetIndex();
       const narration = Array.from($("#docNarrationMemo").files);
       const script = Array.from($("#docScriptFile").files);
       const docShortsLongformVideo = Array.from($("#docShortsLongformVideo").files);
@@ -1192,10 +1205,11 @@ INFOGRAPHIC=희토류 공급망
       $("#docShortsStatus").textContent = `${docShortsLongformVideo.length + docShortsScript.length + docShortsNarration.length} / 3`;
       $("#docShortsScriptCount").textContent = `${docShortsScript.length} / 1`;
       $("#docShortsNarrationCount").textContent = `${docShortsNarration.length} / 1`;
-      const ready = images.length >= 35 && images.length <= 50 && narration.length === 1 && script.length === 1 && thumbnail.length === 1 && bgm.length === 1;
+      const ready = images.length >= 35 && images.length <= 50 && assetInfo.ok && narration.length === 1 && script.length === 1 && thumbnail.length === 1 && bgm.length === 1;
       renderItems($("#docLog"), [
         makeItem("이미지", `${images.length}장 선택됨. 권장 범위는 35~50장입니다.`, images.length >= 35 && images.length <= 50 ? "ok" : "bad"),
         makeItem("Asset_Index.json", `${assetIndex.length}개 선택됨. IMAGE=AUTO와 INFOGRAPHIC 매칭에 사용합니다.`, assetIndex.length === 1 ? "ok" : "bad"),
+        makeItem("자산 인덱스 내용", assetInfo.ok ? `사용 가능 ${assetInfo.usableCount}개 / AI ${assetInfo.aiCount}개 / VS ${assetInfo.vsCount}개` : `AI와 VS 자산이 모두 필요합니다. ${assetInfo.error}`, assetInfo.ok ? "ok" : "bad"),
         makeItem("나레이션 메모장", `${narration.length}개 선택됨`, narration.length === 1 ? "ok" : "bad"),
         makeItem("나레이션 포함 대본", `${script.length}개 선택됨`, script.length === 1 ? "ok" : "bad"),
         makeItem("숏츠 원본 롱폼 영상", `${docShortsLongformVideo.length}개 선택됨 / 롱폼을 잘라 6개 숏츠로 제작`, docShortsLongformVideo.length === 1 ? "ok" : "bad"),
@@ -1387,6 +1401,37 @@ INFOGRAPHIC=희토류 공급망
       return inputs.flatMap((input) => fileSummary(input));
     }
 
+    async function validateDocAssetIndex() {
+      const file = $("#docAssetIndex").files[0];
+      if (!file) {
+        state.doc.assetIndex = { ok: false, aiCount: 0, vsCount: 0, usableCount: 0, error: "not selected" };
+        $("#docAssetStatus").textContent = "미확인";
+        return state.doc.assetIndex;
+      }
+
+      try {
+        const data = JSON.parse(await file.text());
+        const assets = Array.isArray(data.assets) ? data.assets : [];
+        const usable = assets.filter((asset) => asset.usable !== false);
+        const aiCount = usable.filter((asset) => asset.type === "AI").length;
+        const vsCount = usable.filter((asset) => asset.type === "VS").length;
+        state.doc.assetIndex = {
+          ok: aiCount > 0 && vsCount > 0,
+          aiCount,
+          vsCount,
+          usableCount: usable.length,
+          error: ""
+        };
+      } catch (error) {
+        state.doc.assetIndex = { ok: false, aiCount: 0, vsCount: 0, usableCount: 0, error: error.message };
+      }
+
+      $("#docAssetStatus").textContent = state.doc.assetIndex.ok
+        ? `AI ${state.doc.assetIndex.aiCount} / VS ${state.doc.assetIndex.vsCount}`
+        : "보완 필요";
+      return state.doc.assetIndex;
+    }
+
     function getYoutubeSpec(mode) {
       if (mode === "shorts") {
         return {
@@ -1435,6 +1480,10 @@ INFOGRAPHIC=희토류 공급망
       const common = {
         mode,
         createdAt: new Date().toISOString(),
+        project: {
+          name: $("#projectName").value.trim() || "ProjectName",
+          outputName: $("#outputName").value.trim() || "final_video"
+        },
         api: {
           model: state.api.model,
           connected: state.api.connected,
@@ -1445,6 +1494,15 @@ INFOGRAPHIC=희토류 공급망
           requiredTools: ["ffmpeg"],
           optionalTools: ["edge-tts", "pydub"],
           qualityGateScore: 95,
+          expectedPipeline: [
+            "validate_inputs",
+            "generate_or_load_tts",
+            "analyze_audio",
+            "build_timeline",
+            "render_preview",
+            "render_final_mp4",
+            "verify_output"
+          ],
           audio: {
             normalizeLoudness: true,
             preventClipping: true,
@@ -1471,6 +1529,7 @@ INFOGRAPHIC=희토류 공급망
           inputs: {
             images: fileSummary($("#docImages")),
             assetIndex: fileSummary($("#docAssetIndex")),
+            assetIndexValidation: state.doc.assetIndex,
             thumbnail: fileSummary($("#docThumbnail")),
             narrationMemo: fileSummary($("#docNarrationMemo")),
             script: fileSummary($("#docScriptFile")),
@@ -1589,6 +1648,7 @@ INFOGRAPHIC=희토류 공급망
       if (plan.mode === "doc") {
         checks.push(["이미지 35~50장", plan.inputs.images.length >= 35 && plan.inputs.images.length <= 50, `${plan.inputs.images.length}장`]);
         checks.push(["Asset_Index.json", plan.inputs.assetIndex.length === 1, `${plan.inputs.assetIndex.length}개`]);
+        checks.push(["AI/VS 자산 포함", plan.inputs.assetIndexValidation.ok === true, `AI ${plan.inputs.assetIndexValidation.aiCount} / VS ${plan.inputs.assetIndexValidation.vsCount}`]);
         checks.push(["썸네일 이미지", plan.inputs.thumbnail.length === 1, `${plan.inputs.thumbnail.length}개`]);
         checks.push(["나레이션 메모장", plan.inputs.narrationMemo.length === 1, `${plan.inputs.narrationMemo.length}개`]);
         checks.push(["나레이션 포함 대본", plan.inputs.script.length === 1, `${plan.inputs.script.length}개`]);
@@ -1634,6 +1694,9 @@ INFOGRAPHIC=희토류 공급망
         checks.push(["자막 싱크 필수", plan.rules.subtitleSyncRequired === true, "TTS 오디오 기준"]);
         checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       }
+      checks.push(["프로젝트 이름", Boolean(plan.project.name), plan.project.name]);
+      checks.push(["출력 파일 이름", Boolean(plan.project.outputName), plan.project.outputName]);
+      checks.push(["렌더 파이프라인", plan.renderEngine.expectedPipeline.includes("verify_output"), plan.renderEngine.expectedPipeline.join(" → ")]);
       checks.push(["YouTube 규격", Boolean(plan.youtube.aspectRatio && plan.youtube.resolution && plan.youtube.fps === 30), `${plan.youtube.aspectRatio} / ${plan.youtube.resolution} / ${plan.youtube.fps}fps`]);
       checks.push(["오디오 규격", plan.youtube.audioCodec === "aac" && plan.youtube.sampleRate === 48000, `${plan.youtube.audioCodec.toUpperCase()} / ${plan.youtube.sampleRate}Hz / ${plan.youtube.audioBitrate}`]);
       checks.push(["자막 안전영역", plan.youtube.captionsSafeArea === true, "모바일/TV 크롭 대응"]);
@@ -1778,6 +1841,12 @@ INFOGRAPHIC=희토류 공급망
     $("#apiSaveBtn").addEventListener("click", applyApiSettings);
     $("#apiCheckBtn").addEventListener("click", checkApiConnection);
     $("#apiBudget").addEventListener("change", applyApiSettings);
+    $("#projectName").addEventListener("input", () => {
+      $("#planStatus").textContent = "수정됨";
+    });
+    $("#outputName").addEventListener("input", () => {
+      $("#planStatus").textContent = "수정됨";
+    });
     $("#makePlanBtn").addEventListener("click", makeRenderPlan);
     $("#downloadPlanBtn").addEventListener("click", downloadRenderPlan);
     $("#vocalLyrics").addEventListener("change", () => loadLyrics($("#vocalLyrics"), $("#vocalLyricCount"), $("#vocalLyricLog")));
