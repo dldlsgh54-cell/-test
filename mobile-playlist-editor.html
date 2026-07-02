@@ -913,6 +913,22 @@ INFOGRAPHIC=희토류 공급망
             <label>저장 위치</label>
             <div class="control">Projects/ProjectName/Audio/shorts_01.mp3</div>
           </div>
+          <div class="field">
+            <label>톤 / 발음</label>
+            <div class="control">밝고 친근함 / 또박또박</div>
+          </div>
+          <div class="field">
+            <label>감정 흐름</label>
+            <div class="control">초반 놀람 → 중반 설명 → 후반 확신</div>
+          </div>
+          <div class="field">
+            <label>출력 형식</label>
+            <div class="control">Hook / 35초 대본 / TTS 최종 문장 / 감정·속도 가이드</div>
+          </div>
+          <div class="field">
+            <label>자막 싱크</label>
+            <div class="control">TTS 오디오 길이 기준 타임코드 생성</div>
+          </div>
         </div>
       </div>
 
@@ -1007,6 +1023,31 @@ INFOGRAPHIC=희토류 공급망
         subtitle_max_chars: 12,
         bgm_volume: -18
       }
+    };
+
+    const SHOPPING_SHORTS_NARRATION_RULES = {
+      tone: "밝고 친근함",
+      speed: "약간 빠르게",
+      emotionFlow: {
+        opening: "놀람",
+        middle: "설명",
+        ending: "확신"
+      },
+      pronunciation: "또박또박",
+      pause: "문장 사이 짧게",
+      fixedVoicePolicy: "여성/남성 중 하나로 고정해서 브랜드 톤 유지",
+      outputFormat: ["Hook", "35초 나레이션 대본", "TTS용 최종 문장", "감정/속도 가이드"],
+      subtitleSync: "TTS 생성 오디오 길이를 기준으로 자막 타임코드를 생성해 싱크를 맞춘다.",
+      checklist: [
+        "35초 안에 읽히는가",
+        "첫 3초 훅이 강한가",
+        "문장이 짧은가",
+        "상품명이 자연스럽게 들어갔는가",
+        "문제 → 해결 구조인가",
+        "과장 표현이 없는가",
+        "마지막 CTA가 있는가",
+        "TTS가 읽기 쉬운 문장인가"
+      ]
     };
 
     const $ = (selector) => document.querySelector(selector);
@@ -1525,7 +1566,8 @@ INFOGRAPHIC=희토류 공급망
           rate: "+5%",
           pitch: "0Hz",
           volume: "+0%",
-          outputPattern: "Projects/ProjectName/Audio/shorts_##.mp3"
+          outputPattern: "Projects/ProjectName/Audio/shorts_##.mp3",
+          narrationRules: SHOPPING_SHORTS_NARRATION_RULES
         },
         rules: {
           shortsCount: Number($("#shortsCount").value),
@@ -1533,6 +1575,8 @@ INFOGRAPHIC=희토류 공급망
           durationSeconds: 35,
           scriptLengthCharacters: "120-150",
           scenes: 8,
+          subtitleSyncRequired: true,
+          naturalHumanReadRequired: true,
           narrationNaturalness: "same voice, faster delivery",
           sfxDecisionByGpt: true,
           qualityMinimumScore: 95
@@ -1585,6 +1629,9 @@ INFOGRAPHIC=희토류 공급망
         checks.push(["35초 구성", plan.rules.durationSeconds === 35, `${plan.rules.durationSeconds}초`]);
         checks.push(["8씬 스토리보드", plan.rules.scenes === 8, `${plan.rules.scenes}씬`]);
         checks.push(["모바일 해상도", plan.youtube.resolution === "1080x1920", plan.youtube.resolution]);
+        checks.push(["나레이션 톤", plan.tts.narrationRules.tone === "밝고 친근함", plan.tts.narrationRules.tone]);
+        checks.push(["감정 흐름", plan.tts.narrationRules.emotionFlow.opening === "놀람" && plan.tts.narrationRules.emotionFlow.ending === "확신", "놀람 → 설명 → 확신"]);
+        checks.push(["자막 싱크 필수", plan.rules.subtitleSyncRequired === true, "TTS 오디오 기준"]);
         checks.push(["Edge-TTS 목소리", plan.tts.voice === "ko-KR-HyunsuNeural", plan.tts.voice]);
       }
       checks.push(["YouTube 규격", Boolean(plan.youtube.aspectRatio && plan.youtube.resolution && plan.youtube.fps === 30), `${plan.youtube.aspectRatio} / ${plan.youtube.resolution} / ${plan.youtube.fps}fps`]);
